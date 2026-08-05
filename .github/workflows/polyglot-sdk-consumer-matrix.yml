@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   sdk-clients:
-    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@ad6b6a3e53958d2d2571a45d711d0263bbcce985
+    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@293872964139a87228e89228f2107e19e40305e2
     with:
       clients_repository: opto-sync/opto-sync-clients
       clients_ref: main
