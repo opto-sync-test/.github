@@ -1,0 +1,30 @@
+name: Test gap
+description: Propose independent acceptance coverage
+title: "test-gap: "
+labels: [test-gap]
+body:
+  - type: textarea
+    id: invariant
+    attributes:
+      label: Invariant
+      description: "What behavior must remain true?"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reproduction and evidence
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      options:
+        - pull-request contract
+        - scheduled integration
+        - emulator/desktop
+        - chaos/scale
+        - security
+    validations:
+      required: true
