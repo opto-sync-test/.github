@@ -1,0 +1,12 @@
+name: Portfolio policy
+on: [pull_request, workflow_dispatch]
+permissions: {contents: read}
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject common committed secret material
+        run: |
+          set -euo pipefail
+          ! grep -RInE 'ghp_[A-Za-z0-9]{20,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|Authorization: Bearer [A-Za-z0-9._-]+' . --exclude-dir=.git

@@ -1,0 +1,13 @@
+{
+  "name": "Independent contract CI",
+  "description": "Validate acceptance metadata and deterministic fixtures.",
+  "iconName": "check-circle",
+  "categories": [
+    "Continuous integration",
+    "Testing"
+  ],
+  "filePatterns": [
+    "test-plan\\.yaml$",
+    "dependency-contract\\.yaml$"
+  ]
+}
