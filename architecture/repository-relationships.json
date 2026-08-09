@@ -1,0 +1,412 @@
+{
+  "$schema": "./repository-relationships.schema.json",
+  "composition_policy": {
+    "dual_managed_invariant": "gitlink SHA must equal the source commit in the Zed lock entry",
+    "editable_source_composition": "git-submodules",
+    "package_and_artifact_resolution": "zed-pkg",
+    "production_deployment_resolution": "immutable OCI image digest or signed artifact",
+    "production_source_checkout": "forbidden as a runtime deployment mechanism"
+  },
+  "inventory_scope": "public-repositories-plus-role-contracts",
+  "observability_policy": {
+    "logs": "structured output with trace_id/span_id correlation",
+    "metrics": "Prometheus-compatible bounded-cardinality metrics",
+    "required_resource_attributes": [
+      "service.name",
+      "service.namespace",
+      "service.version",
+      "deployment.environment",
+      "vcs.ref.head.revision"
+    ],
+    "traces": "OpenTelemetry with W3C trace context"
+  },
+  "organization": "opto-sync-test",
+  "privacy": {
+    "private_repository_count": 11,
+    "private_repository_names_published": false,
+    "public_repository_names_published": true,
+    "reason": "The public .github registry intentionally withholds private repository names and edges."
+  },
+  "registry_repository": "opto-sync-test/.github",
+  "relationships": [
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/background-wake-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/c-engine-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/checkpoint-rollback-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/clock-poisoning-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/conflict-rebase-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/cross-language-wire-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/dart-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/erlang-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/gleam-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/indexeddb-backend-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/offline-convergence-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/postgres-backend-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/queue-quota-recovery-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/rust-engine-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/sdk-packaging-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/sqlite-drift-backend-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/supabase-backend-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/typescript-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/zed-submodule-interop-e2e"
+    },
+    {
+      "from": "organization://opto-sync-test",
+      "kind": "packaged_via",
+      "rationale": "Zed resolves artifacts while submodules compose editable source",
+      "source_basis": "platform-policy",
+      "status": "platform-default",
+      "to": "platform://zed-pkg"
+    }
+  ],
+  "repositories": [
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/.github",
+      "lifecycle": "active",
+      "name": ".github",
+      "role": "organization_governance",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/background-wake-e2e",
+      "lifecycle": "active",
+      "name": "background-wake-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/c-engine-e2e",
+      "lifecycle": "active",
+      "name": "c-engine-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/checkpoint-rollback-e2e",
+      "lifecycle": "active",
+      "name": "checkpoint-rollback-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/clock-poisoning-e2e",
+      "lifecycle": "active",
+      "name": "clock-poisoning-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/conflict-rebase-e2e",
+      "lifecycle": "active",
+      "name": "conflict-rebase-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/cross-language-wire-e2e",
+      "lifecycle": "active",
+      "name": "cross-language-wire-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/dart-client-e2e",
+      "lifecycle": "active",
+      "name": "dart-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/erlang-client-e2e",
+      "lifecycle": "active",
+      "name": "erlang-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/gleam-client-e2e",
+      "lifecycle": "active",
+      "name": "gleam-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/indexeddb-backend-e2e",
+      "lifecycle": "active",
+      "name": "indexeddb-backend-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/offline-convergence-e2e",
+      "lifecycle": "active",
+      "name": "offline-convergence-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/postgres-backend-e2e",
+      "lifecycle": "active",
+      "name": "postgres-backend-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/queue-quota-recovery-e2e",
+      "lifecycle": "active",
+      "name": "queue-quota-recovery-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/rust-engine-e2e",
+      "lifecycle": "active",
+      "name": "rust-engine-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/sdk-packaging-e2e",
+      "lifecycle": "active",
+      "name": "sdk-packaging-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/sqlite-drift-backend-e2e",
+      "lifecycle": "active",
+      "name": "sqlite-drift-backend-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/supabase-backend-e2e",
+      "lifecycle": "active",
+      "name": "supabase-backend-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/typescript-client-e2e",
+      "lifecycle": "active",
+      "name": "typescript-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/zed-submodule-interop-e2e",
+      "lifecycle": "active",
+      "name": "zed-submodule-interop-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    }
+  ],
+  "role_contracts": {
+    "api_service": "Owns public APIs, webhooks, authorization, validation, and orchestration.",
+    "client_sdk": "Depends on interfaces and exposes generated clients plus thin wrappers.",
+    "composition_workspace": "Composes source repositories and records the release BOM.",
+    "end_to_end_tests": "Runs black-box compatibility and user-flow checks.",
+    "infrastructure": "Owns product cloud resources; promotion remains GitOps-controlled.",
+    "interfaces": "Own OpenAPI, events, JSON Schema, compatibility fixtures, and DTO inputs.",
+    "mcp_server": "Calls product SDKs/APIs; no parallel domain persistence.",
+    "sync_service": "Owns product conflict policy/adapters and wraps Opto reconciliation.",
+    "web_bff": "Owns browser sessions, CSRF, HTML/SSR, and calls the product API."
+  },
+  "schema_version": "1.0.0",
+  "service_boundary_policy": {
+    "cross_service_database_access": "forbidden-by-default",
+    "mcp_database_access": "forbidden-by-default; MCP calls the product API/SDK",
+    "preferred_cross_service_calls": "typed API/SDK, event, or owned replicated read model"
+  }
+}
