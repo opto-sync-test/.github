@@ -7,6 +7,10 @@
 5. Never resolve conflicts by blindly choosing "ours" or "theirs". Inspect the base, both branches, nearby history, tests, and downstream consumers; then construct the smallest coherent combined result.
 6. Do not commit credentials, private keys, tokens, production data, or personal information.
 
+## Test-fleet contract
+
+Keep source dependencies pinned to immutable 40-character commits. Exercise at least one real dependency lane—submodule, Zed package, or native package—and preserve its generated contract. Add product assertions instead of replacing contract checks with no-op smoke tests.
+
 ## AI-assisted pull-request promotion
 
 This policy applies to AI agents and AI-assisted automation. Repository-specific rules may be stricter and take precedence.

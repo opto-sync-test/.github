@@ -4,6 +4,8 @@ Independent acceptance organization for **opto-sync**.
 
 IndexedDB/SQLite/PostgreSQL/Supabase sync, conflicts, background execution, validators, and Rust/C conformance.
 
+The fleet spans browser, chaos, database, Flutter-emulator, interoperability, protocol, SDK-consumer, and security acceptance profiles. Generated pull-request workflows use least privilege, immutable action pins, and no persisted checkout credentials; integration workflows requiring private cross-organization access remain explicitly gated.
+
 ## Portfolio
 
 | Repository | Class | Readiness | Primary dependency path |

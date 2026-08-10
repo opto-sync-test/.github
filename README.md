@@ -1,5 +1,6 @@
-# .github
-Organization policy and shared workflows for opto-sync-test
+# opto-sync-test governance
+
+Organization policy, community health, reusable workflows, and fleet conventions for `opto-sync-test`.
 
 
 <!-- ore-org-baseline:begin -->
