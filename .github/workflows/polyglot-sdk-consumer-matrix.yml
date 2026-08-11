@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   sdk-clients:
-    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@9aa85314537b8c6dffdf8c4349abda58bd4494f5
+    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@240b2f0905030b865adbfa83e06a47f9fa681264
     with:
       clients_repository: opto-sync/opto-sync-clients
-      clients_ref: 98f76600ae402d38e5c812a7ec38d48f7b42000b
+      clients_ref: 55ffb2e922785b12d68be44ae256ff61a497f8a1
       clients_root: clients
       disabled_languages: 'cpp,zig'
     secrets:
