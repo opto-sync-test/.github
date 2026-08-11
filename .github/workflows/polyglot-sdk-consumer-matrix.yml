@@ -14,11 +14,118 @@ permissions:
   contents: read
 
 jobs:
+  contract-provenance:
+    name: contract provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the merged Opto-Sync clients
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: opto-sync/opto-sync-clients
+          ref: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
+          path: opto-sync-clients
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout the merged sync engine
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: opto-sync/syncer.rs
+          ref: 4d5627040500a8840d6ab0f6f412a908e2a0f6a9
+          path: syncer.rs
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable Git and schema provenance
+        env:
+          CLIENTS_MERGE_SHA: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
+          TELEMETRY_MERGE_SHA: 35e62970c9847c7f87bd03947a1e3909f6159214
+          SYNCER_MERGE_SHA: 4d5627040500a8840d6ab0f6f412a908e2a0f6a9
+          SYNCER_CONTENT_SHA: bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98
+          MERGE_OPTIONS_SHA256: e9107667cee2868a922a70c9c48175c62b466fa728466c23bac766aebcbb2f2a
+          SDK_API_SHA256: 11545638496622dbbdeafc177271f8ed69848c47b68f4bc13d993a330a07206c
+          TELEMETRY_SCHEMA_SHA256: ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413
+        run: |
+          set -euo pipefail
+          test "$(git -C opto-sync-clients rev-parse HEAD)" = "$CLIENTS_MERGE_SHA"
+          git -C opto-sync-clients merge-base --is-ancestor "$TELEMETRY_MERGE_SHA" "$CLIENTS_MERGE_SHA"
+          test "$(git -C syncer.rs rev-parse HEAD)" = "$SYNCER_MERGE_SHA"
+          git -C syncer.rs merge-base --is-ancestor "$SYNCER_CONTENT_SHA" "$SYNCER_MERGE_SHA"
+          test "$(sha256sum syncer.rs/schema/merge-options.schema.json | cut -d ' ' -f 1)" = "$MERGE_OPTIONS_SHA256"
+          test "$(sha256sum opto-sync-clients/schema/opto-sync-sdk-api.v1.json | cut -d ' ' -f 1)" = "$SDK_API_SHA256"
+          test "$(sha256sum opto-sync-clients/schema/opto-sync-telemetry.schema.json | cut -d ' ' -f 1)" = "$TELEMETRY_SCHEMA_SHA256"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: opto-sync-clients/schema/package-lock.json
+
+      - name: Verify the portable API and privacy schema corpus
+        working-directory: opto-sync-clients/schema
+        run: |
+          npm ci
+          npm test
+
+      - name: Verify target, Ores, and Zed release boundaries
+        run: |
+          python3 - <<'PY'
+          import json
+          import tomllib
+          from pathlib import Path
+
+          root = Path("opto-sync-clients")
+          contract = json.loads((root / "schema/opto-sync-sdk-api.v1.json").read_text())
+          operations = contract["operations"]
+          assert len(operations) == 18
+          assert sum(operation["conformance"] == "portable" for operation in operations) == 6
+          assert sum(operation["conformance"] == "candidate" for operation in operations) == 12
+
+          merge_options = contract["mergeOptionsSchema"]
+          assert merge_options == {
+              "repository": "opto-sync/syncer.rs",
+              "commit": "bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98",
+              "path": "schema/merge-options.schema.json",
+              "id": "https://opto-sync.dev/schema/merge-options.schema.json",
+              "sha256": "e9107667cee2868a922a70c9c48175c62b466fa728466c23bac766aebcbb2f2a",
+              "status": "canonical",
+              "blockers": [],
+          }
+
+          for dependency in contract["dependencies"].values():
+              assert dependency["status"] == "pending-release"
+              assert dependency["integration"] == "injected"
+
+          with (root / "clients/sdk-matrix.toml").open("rb") as handle:
+              matrix = tomllib.load(handle)
+          expected_targets = {
+              "gleamlang", "erlang", "elixir", "dart", "rust", "java",
+              "golang", "python3", "ruby", "php", "typescript_nodejs",
+              "typescript_deno", "typescript_bun", "typescript_edge",
+              "kotlin", "swift",
+          }
+          assert {name for name, enabled in matrix["targets"].items() if enabled} == expected_targets
+          assert matrix["merge_options_schema_status"] == "canonical"
+          assert matrix["structured_logging_mode"] == "injected"
+          assert matrix["ores_zed_dependency_status"] == "pending-release"
+
+          with (root / ".zpkg.toml").open("rb") as handle:
+              zed_manifest = tomllib.load(handle)
+          with (root / ".zpkg.lock").open("rb") as handle:
+              zed_lock = tomllib.load(handle)
+          assert not zed_manifest.get("dependencies")
+          assert zed_lock == {"version": 1}
+          PY
+          python3 opto-sync-clients/scripts/check-zed-packaging.py
+
   sdk-clients:
+    needs: contract-provenance
+    # zed-pkg-test/.github#26 must merge before this caller is promoted.
     uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@fbdd53e658e9f370a5d155d51f181efcd23c81cf
     with:
       clients_repository: opto-sync/opto-sync-clients
-      clients_ref: abd83db42f604ce1094bdb24230672d7e6010bac
+      clients_ref: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
       clients_root: clients
       disabled_languages: 'cpp,zig'
     secrets:
