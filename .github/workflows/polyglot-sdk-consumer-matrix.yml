@@ -25,6 +25,7 @@ jobs:
           ref: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
           path: opto-sync-clients
           fetch-depth: 0
+          submodules: recursive
           persist-credentials: false
 
       - name: Checkout the merged sync engine
