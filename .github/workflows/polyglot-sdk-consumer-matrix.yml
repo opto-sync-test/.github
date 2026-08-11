@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: opto-sync/opto-sync-clients
-          ref: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
+          ref: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
           path: opto-sync-clients
           fetch-depth: 0
           submodules: recursive
@@ -39,7 +39,8 @@ jobs:
 
       - name: Verify immutable Git and schema provenance
         env:
-          CLIENTS_MERGE_SHA: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
+          CLIENTS_HEAD_SHA: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
+          CONTRACT_MERGE_SHA: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
           TELEMETRY_MERGE_SHA: 35e62970c9847c7f87bd03947a1e3909f6159214
           SYNCER_MERGE_SHA: 4d5627040500a8840d6ab0f6f412a908e2a0f6a9
           SYNCER_CONTENT_SHA: bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98
@@ -48,8 +49,9 @@ jobs:
           TELEMETRY_SCHEMA_SHA256: ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413
         run: |
           set -euo pipefail
-          test "$(git -C opto-sync-clients rev-parse HEAD)" = "$CLIENTS_MERGE_SHA"
-          git -C opto-sync-clients merge-base --is-ancestor "$TELEMETRY_MERGE_SHA" "$CLIENTS_MERGE_SHA"
+          test "$(git -C opto-sync-clients rev-parse HEAD)" = "$CLIENTS_HEAD_SHA"
+          git -C opto-sync-clients merge-base --is-ancestor "$CONTRACT_MERGE_SHA" "$CLIENTS_HEAD_SHA"
+          git -C opto-sync-clients merge-base --is-ancestor "$TELEMETRY_MERGE_SHA" "$CLIENTS_HEAD_SHA"
           test "$(git -C syncer.rs rev-parse HEAD)" = "$SYNCER_MERGE_SHA"
           git -C syncer.rs merge-base --is-ancestor "$SYNCER_CONTENT_SHA" "$SYNCER_MERGE_SHA"
           test "$(sha256sum syncer.rs/schema/merge-options.schema.json | cut -d ' ' -f 1)" = "$MERGE_OPTIONS_SHA256"
@@ -126,7 +128,7 @@ jobs:
     uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@fbdd53e658e9f370a5d155d51f181efcd23c81cf
     with:
       clients_repository: opto-sync/opto-sync-clients
-      clients_ref: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
+      clients_ref: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
       clients_root: clients
       disabled_languages: 'cpp,zig'
     secrets:
