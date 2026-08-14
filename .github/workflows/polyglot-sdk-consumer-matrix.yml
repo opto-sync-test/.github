@@ -103,7 +103,7 @@ jobs:
           with (root / "clients/sdk-matrix.toml").open("rb") as handle:
               matrix = tomllib.load(handle)
           expected_targets = {
-              "gleamlang", "erlang", "elixir", "dart", "rust", "java",
+              "csharp", "fsharp", "gleamlang", "erlang", "elixir", "dart", "rust", "java",
               "golang", "python3", "ruby", "php", "typescript_nodejs",
               "typescript_deno", "typescript_bun", "typescript_edge",
               "kotlin", "swift",
