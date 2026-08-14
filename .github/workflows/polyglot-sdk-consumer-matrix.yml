@@ -124,8 +124,8 @@ jobs:
 
   sdk-clients:
     needs: contract-provenance
-    # zed-pkg-test/.github#26 must merge before this caller is promoted.
-    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@fbdd53e658e9f370a5d155d51f181efcd23c81cf
+    # Immutable merged reusable workflow from zed-pkg-test/.github#26.
+    uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@6614fad813432901729cad1eb802114bdeaaa146
     with:
       clients_repository: opto-sync/opto-sync-clients
       clients_ref: b31b3372ec38dd5290d92109bd331b6631980b3c
