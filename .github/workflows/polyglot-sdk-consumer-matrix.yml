@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: opto-sync/opto-sync-clients
-          ref: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
+          ref: 61d201ab40628c5bef044d1571477ae7592d5e6b
           path: opto-sync-clients
           fetch-depth: 0
           submodules: recursive
@@ -39,7 +39,7 @@ jobs:
 
       - name: Verify immutable Git and schema provenance
         env:
-          CLIENTS_HEAD_SHA: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
+          CLIENTS_HEAD_SHA: 61d201ab40628c5bef044d1571477ae7592d5e6b
           CONTRACT_MERGE_SHA: 70dfeacc84e7ec1486c7d652bfe4f9bd36a31d2c
           TELEMETRY_MERGE_SHA: 35e62970c9847c7f87bd03947a1e3909f6159214
           SYNCER_MERGE_SHA: 4d5627040500a8840d6ab0f6f412a908e2a0f6a9
@@ -128,7 +128,7 @@ jobs:
     uses: zed-pkg-test/.github/.github/workflows/sdk-client-language-matrix.yml@fbdd53e658e9f370a5d155d51f181efcd23c81cf
     with:
       clients_repository: opto-sync/opto-sync-clients
-      clients_ref: c6afeb415cfc9ff2f488bb52dd8b4af64c2e0d04
+      clients_ref: 61d201ab40628c5bef044d1571477ae7592d5e6b
       clients_root: clients
       disabled_languages: 'cpp,zig'
     secrets:
