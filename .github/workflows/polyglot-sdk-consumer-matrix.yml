@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the merged Opto-Sync clients
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: opto-sync/opto-sync-clients
           ref: 61d201ab40628c5bef044d1571477ae7592d5e6b
@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout the merged sync engine
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: opto-sync/syncer.rs
           ref: 4d5627040500a8840d6ab0f6f412a908e2a0f6a9
@@ -59,7 +59,7 @@ jobs:
           test "$(sha256sum opto-sync-clients/schema/opto-sync-telemetry.schema.json | cut -d ' ' -f 1)" = "$TELEMETRY_SCHEMA_SHA256"
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
