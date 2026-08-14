@@ -6,6 +6,22 @@ IndexedDB/SQLite/PostgreSQL/Supabase sync, conflicts, background execution, vali
 
 The fleet spans browser, chaos, database, Flutter-emulator, interoperability, protocol, SDK-consumer, and security acceptance profiles. Generated pull-request workflows use least privilege, immutable action pins, and no persisted checkout credentials; integration workflows requiring private cross-organization access remain explicitly gated.
 
+## Polyglot full-stack acceptance
+
+The active cross-platform matrix now includes:
+
+- [SAFE Stack / Fable / C# and F#](https://github.com/opto-sync-test/safe-fable-dotnet-e2e)
+- [Kotlin Multiplatform](https://github.com/opto-sync-test/kotlin-multiplatform-e2e)
+- [Vaadin / Java](https://github.com/opto-sync-test/vaadin-java-e2e)
+- [Leptos + Dioxus / Rust](https://github.com/opto-sync-test/leptos-dioxus-rust-e2e)
+- [Gleam / BEAM + WebAssembly](https://github.com/opto-sync-test/gleam-wasm-fullstack-e2e)
+- [Laravel Livewire / PHP + local Supabase](https://github.com/opto-sync-test/laravel-livewire-e2e)
+
+These fixtures exercise durable browser service workers, native background
+workers where the platform exposes them, immutable retries, concurrent upload
+and realtime lanes, and recursively pinned OptoSync SDK/core revisions. The
+Supabase fixture boots its own local stack and requires no hosted project key.
+
 ## Portfolio
 
 | Repository | Class | Readiness | Primary dependency path |

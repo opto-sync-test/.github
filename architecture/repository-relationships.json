@@ -131,6 +131,14 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/gleam-wasm-fullstack-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/grpc-go-flutter-e2e"
     },
     {
@@ -140,6 +148,30 @@
       "source_basis": "role-convention",
       "status": "inferred",
       "to": "opto-sync-test/indexeddb-backend-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/kotlin-multiplatform-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/laravel-livewire-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/leptos-dioxus-rust-e2e"
     },
     {
       "from": "opto-sync-test/.github",
@@ -203,6 +235,14 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/safe-fable-dotnet-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/sdk-packaging-e2e"
     },
     {
@@ -252,6 +292,14 @@
       "source_basis": "role-convention",
       "status": "inferred",
       "to": "opto-sync-test/upgrade-compatibility-tests"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/vaadin-java-e2e"
     },
     {
       "from": "opto-sync-test/.github",
@@ -405,6 +453,16 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/gleam-wasm-fullstack-e2e",
+      "lifecycle": "active",
+      "name": "gleam-wasm-fullstack-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/grpc-go-flutter-e2e",
       "lifecycle": "active",
       "name": "grpc-go-flutter-e2e",
@@ -418,6 +476,36 @@
       "full_name": "opto-sync-test/indexeddb-backend-e2e",
       "lifecycle": "active",
       "name": "indexeddb-backend-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/kotlin-multiplatform-e2e",
+      "lifecycle": "active",
+      "name": "kotlin-multiplatform-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/laravel-livewire-e2e",
+      "lifecycle": "active",
+      "name": "laravel-livewire-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/leptos-dioxus-rust-e2e",
+      "lifecycle": "active",
+      "name": "leptos-dioxus-rust-e2e",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
@@ -495,6 +583,16 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/safe-fable-dotnet-e2e",
+      "lifecycle": "active",
+      "name": "safe-fable-dotnet-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/sdk-packaging-e2e",
       "lifecycle": "active",
       "name": "sdk-packaging-e2e",
@@ -558,6 +656,16 @@
       "full_name": "opto-sync-test/upgrade-compatibility-tests",
       "lifecycle": "active",
       "name": "upgrade-compatibility-tests",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/vaadin-java-e2e",
+      "lifecycle": "active",
+      "name": "vaadin-java-e2e",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
