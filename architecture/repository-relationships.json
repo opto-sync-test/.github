@@ -51,6 +51,14 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/chaos-recovery-tests"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/checkpoint-rollback-e2e"
     },
     {
@@ -68,6 +76,14 @@
       "source_basis": "role-convention",
       "status": "inferred",
       "to": "opto-sync-test/conflict-rebase-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/contract-conformance-tests"
     },
     {
       "from": "opto-sync-test/.github",
@@ -99,7 +115,23 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/fastapi-kotlin-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/gleam-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/grpc-go-flutter-e2e"
     },
     {
       "from": "opto-sync-test/.github",
@@ -123,6 +155,14 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/phoenix-elixir-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/postgres-backend-e2e"
     },
     {
@@ -139,6 +179,14 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/roda-ruby-swift-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/rust-engine-e2e"
     },
     {
@@ -147,7 +195,23 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/rust-fullstack-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/sdk-packaging-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/security-boundary-tests"
     },
     {
       "from": "opto-sync-test/.github",
@@ -171,7 +235,23 @@
       "rationale": "organization defaults, safety, and relationship declarations",
       "source_basis": "role-convention",
       "status": "inferred",
+      "to": "opto-sync-test/trpc-typescript-fullstack-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
       "to": "opto-sync-test/typescript-client-e2e"
+    },
+    {
+      "from": "opto-sync-test/.github",
+      "kind": "governs",
+      "rationale": "organization defaults, safety, and relationship declarations",
+      "source_basis": "role-convention",
+      "status": "inferred",
+      "to": "opto-sync-test/upgrade-compatibility-tests"
     },
     {
       "from": "opto-sync-test/.github",
@@ -225,6 +305,16 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/chaos-recovery-tests",
+      "lifecycle": "active",
+      "name": "chaos-recovery-tests",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/checkpoint-rollback-e2e",
       "lifecycle": "active",
       "name": "checkpoint-rollback-e2e",
@@ -248,6 +338,16 @@
       "full_name": "opto-sync-test/conflict-rebase-e2e",
       "lifecycle": "active",
       "name": "conflict-rebase-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/contract-conformance-tests",
+      "lifecycle": "active",
+      "name": "contract-conformance-tests",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
@@ -285,9 +385,29 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/fastapi-kotlin-e2e",
+      "lifecycle": "active",
+      "name": "fastapi-kotlin-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/gleam-client-e2e",
       "lifecycle": "active",
       "name": "gleam-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/grpc-go-flutter-e2e",
+      "lifecycle": "active",
+      "name": "grpc-go-flutter-e2e",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
@@ -315,6 +435,16 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/phoenix-elixir-e2e",
+      "lifecycle": "active",
+      "name": "phoenix-elixir-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/postgres-backend-e2e",
       "lifecycle": "active",
       "name": "postgres-backend-e2e",
@@ -335,6 +465,16 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/roda-ruby-swift-e2e",
+      "lifecycle": "active",
+      "name": "roda-ruby-swift-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/rust-engine-e2e",
       "lifecycle": "active",
       "name": "rust-engine-e2e",
@@ -345,9 +485,29 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/rust-fullstack-e2e",
+      "lifecycle": "active",
+      "name": "rust-fullstack-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/sdk-packaging-e2e",
       "lifecycle": "active",
       "name": "sdk-packaging-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/security-boundary-tests",
+      "lifecycle": "active",
+      "name": "security-boundary-tests",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
@@ -375,9 +535,29 @@
       "archived": false,
       "default_branch": "main",
       "fork": false,
+      "full_name": "opto-sync-test/trpc-typescript-fullstack-e2e",
+      "lifecycle": "active",
+      "name": "trpc-typescript-fullstack-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
       "full_name": "opto-sync-test/typescript-client-e2e",
       "lifecycle": "active",
       "name": "typescript-client-e2e",
+      "role": "end_to_end_tests",
+      "visibility": "public"
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "fork": false,
+      "full_name": "opto-sync-test/upgrade-compatibility-tests",
+      "lifecycle": "active",
+      "name": "upgrade-compatibility-tests",
       "role": "end_to_end_tests",
       "visibility": "public"
     },
