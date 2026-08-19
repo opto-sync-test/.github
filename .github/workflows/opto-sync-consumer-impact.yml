@@ -61,9 +61,7 @@ jobs:
           import re
           from pathlib import Path
 
-          policy = json.loads(
-              Path('architecture/opto-sync-consumer-impact-policy.v1.json').read_text()
-          )
+          policy = json.loads(Path('architecture/opto-sync-consumer-impact-policy.v1.json').read_text())
           assert policy['schemaVersion'] == 1
           assert policy['root'] == 'opto-sync/opto-sync-clients'
           assert policy['harnessRepository'] == 'opto-sync/opto-sync-e2e'
@@ -74,28 +72,20 @@ jobs:
           assert policy['failOn'] == ['graph-only', 'unclassified', 'missing-graphs']
           assert policy['allowCuratedOnly'] is True
           execution = policy['consumerExecution']
-          assert execution == {
-              'planSchema': 'opto-sync/consumer-execution-plan/v1',
-              'receiptSchema': 'opto-sync/consumer-dispatch-receipts/v1',
-              'dispatchTokenSecret': 'OPTO_SYNC_TEST_DISPATCH_TOKEN',
-              'requireDispatchVariable': 'OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH',
-              'apiVersion': '2026-03-10',
-              'dispatchMode': 'workflow_dispatch',
-              'dispatchResponseRequiresWorkflowRunId': True,
-              'workflowFile': 'opto-sync-wrapper-e2e.yml',
-              'workflowPath': '.github/workflows/opto-sync-wrapper-e2e.yml',
-              'workflowRef': 'main',
-              'workflowInputs': {'live_e2e': True},
-              'coverageStatus': 'graph-confirmed',
-              'deduplicateBy': 'testRepository',
-              'minimumTargets': 1,
-              'maximumTargets': 50,
-              'completionRequired': True,
-              'successfulConclusions': ['success'],
-              'defaultPollIntervalSeconds': 30,
-              'defaultWaitTimeoutSeconds': 3600,
-              'acceptedDispatchIsNotCompletion': True,
-          }
+          assert execution['planSchema'] == 'opto-sync/consumer-execution-plan/v1'
+          assert execution['receiptSchema'] == 'opto-sync/consumer-dispatch-receipts/v1'
+          assert execution['dispatchTokenSecret'] == 'OPTO_SYNC_TEST_DISPATCH_TOKEN'
+          assert execution['apiVersion'] == '2026-03-10'
+          assert execution['dispatchMode'] == 'workflow_dispatch'
+          assert execution['dispatchResponseRequiresWorkflowRunId'] is True
+          assert execution['workflowFile'] == 'opto-sync-wrapper-e2e.yml'
+          assert execution['workflowPath'] == '.github/workflows/opto-sync-wrapper-e2e.yml'
+          assert execution['workflowRef'] == 'main'
+          assert execution['workflowInputs'] == {'live_e2e': True}
+          assert execution['coverageStatus'] == 'graph-confirmed'
+          assert execution['completionRequired'] is True
+          assert execution['successfulConclusions'] == ['success']
+          assert execution['acceptedDispatchIsNotCompletion'] is True
           assert policy['semantics'] == {
               'graphView': 'declared',
               'resolution': 'unresolved-requirements',
@@ -125,6 +115,7 @@ jobs:
       HARNESS_SHA: ${{ vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA }}
       ZED_REGISTRY_URL: ${{ vars.ZED_REGISTRY_URL }}
       ZED_REGISTRY_TOKEN: ${{ secrets.ZED_REGISTRY_TOKEN }}
+      ZED_REGISTRY_TOKEN_ORIGIN: ${{ vars.ZED_REGISTRY_TOKEN_ORIGIN }}
       OPTO_SYNC_TEST_DISPATCH_TOKEN: ${{ secrets.OPTO_SYNC_TEST_DISPATCH_TOKEN }}
       REQUIRE_CONSUMER_DISPATCH: ${{ vars.OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH }}
     steps:
@@ -141,33 +132,41 @@ jobs:
           path: harness
           persist-credentials: false
 
-      - name: Prove exact harness commit and registry policy
+      - name: Prove exact hardened harness commit and registry policy
         shell: bash
         run: |
           set -euo pipefail
-          [ "${#HARNESS_SHA}" -eq 40 ] || {
-            echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be a lowercase 40-character SHA' >&2
-            exit 1
-          }
-          case "$HARNESS_SHA" in
-            *[!0-9a-f]*) echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be lowercase hexadecimal' >&2; exit 1 ;;
-          esac
+          [ "${#HARNESS_SHA}" -eq 40 ] || { echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be a lowercase 40-character SHA' >&2; exit 1; }
+          case "$HARNESS_SHA" in *[!0-9a-f]*) echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be lowercase hexadecimal' >&2; exit 1 ;; esac
           actual="$(git -C harness rev-parse HEAD)"
-          [ "$actual" = "$HARNESS_SHA" ] || {
-            echo "expected harness $HARNESS_SHA, checked out $actual" >&2
-            exit 1
-          }
-          case "$ZED_REGISTRY_URL" in
-            https://*|http://localhost:*|http://127.0.0.1:*) ;;
-            *) echo 'ZED_REGISTRY_URL must use HTTPS except for an explicit local canary' >&2; exit 1 ;;
-          esac
+          [ "$actual" = "$HARNESS_SHA" ] || { echo "expected harness $HARNESS_SHA, checked out $actual" >&2; exit 1; }
+          [ -f harness/scripts/secure_zed_consumer_graph.py ] || { echo 'pinned harness predates the credential-bound live launcher' >&2; exit 1; }
+          python3 - <<'PY'
+          import importlib.util
+          import os
+          import sys
+          from pathlib import Path
+
+          scripts = Path('harness/scripts').resolve()
+          sys.path.insert(0, str(scripts))
+          path = scripts / 'secure_zed_consumer_graph.py'
+          spec = importlib.util.spec_from_file_location('secure_zed_consumer_graph', path)
+          assert spec and spec.loader
+          module = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = module
+          spec.loader.exec_module(module)
+          module.validate_live_registry(
+              ['--registry-url', os.environ['ZED_REGISTRY_URL'], '--token-env', 'ZED_REGISTRY_TOKEN'],
+              os.environ,
+          )
+          PY
 
       - name: Run graph-derived consumer coverage gate
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p impact
-          python3 harness/scripts/zed_consumer_graph.py \
+          python3 harness/scripts/secure_zed_consumer_graph.py \
             --registry-url "$ZED_REGISTRY_URL" \
             --token-env ZED_REGISTRY_TOKEN \
             --version-policy all-visible \
@@ -211,24 +210,21 @@ jobs:
           set -euo pipefail
           plan_digest="sha256:$(sha256sum impact/opto-sync-consumer-execution-plan.json | awk '{print $1}')"
           target_count="$(jq -r '.targetCount' impact/opto-sync-consumer-execution-plan.json)"
-          jq -n --sort-keys \
-            --arg plan_digest "$plan_digest" \
-            --argjson target_count "$target_count" \
-            '{
-              schema: "opto-sync/consumer-dispatch-receipts/v1",
-              planDigest: $plan_digest,
-              apiUrl: "https://api.github.com",
-              apiVersion: "2026-03-10",
-              status: "not-configured",
-              targetCount: $target_count,
-              acceptedCount: 0,
-              completedCount: 0,
-              successfulCount: 0,
-              failedCount: 0,
-              pendingCount: $target_count,
-              dispatches: [],
-              reason: "OPTO_SYNC_TEST_DISPATCH_TOKEN is not configured"
-            }' > impact/opto-sync-consumer-dispatch-receipts.json
+          jq -n --sort-keys --arg plan_digest "$plan_digest" --argjson target_count "$target_count" '{
+            schema: "opto-sync/consumer-dispatch-receipts/v1",
+            planDigest: $plan_digest,
+            apiUrl: "https://api.github.com",
+            apiVersion: "2026-03-10",
+            status: "not-configured",
+            targetCount: $target_count,
+            acceptedCount: 0,
+            completedCount: 0,
+            successfulCount: 0,
+            failedCount: 0,
+            pendingCount: $target_count,
+            dispatches: [],
+            reason: "OPTO_SYNC_TEST_DISPATCH_TOKEN is not configured"
+          }' > impact/opto-sync-consumer-dispatch-receipts.json
           if [ "${REQUIRE_CONSUMER_DISPATCH:-}" = 'true' ]; then
             echo 'OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH=true, so missing dispatch credentials are fatal.' >&2
             exit 1
@@ -277,8 +273,8 @@ jobs:
           else:
               print('- No dispatch receipts were produced.')
           print()
-          print('The canary uses the exact workflow-run IDs returned by GitHub and requires every selected downstream suite to complete with `success`.')
-          print('Graph-only, unclassified, and missing-graph conditions remain fatal; curated-only entries remain explicit rollout evidence.')
+          print('The live registry token is origin-bound and cross-origin redirects are blocked before graph enumeration.')
+          print('Each downstream workflow is fingerprinted at an immutable preflight head; returned runs must match that exact head, branch, and workflow path.')
           PY
 
       - name: Upload graph, execution-plan, and dispatch evidence
@@ -312,12 +308,8 @@ jobs:
           {
             echo '## Test-org Opto-Sync consumer impact canary'
             echo
-            if [ -z "$HARNESS_SHA" ]; then
-              echo '- Missing repository variable `OPTO_SYNC_E2E_GRAPH_HARNESS_SHA`.'
-            fi
-            if [ -z "$REGISTRY_URL" ]; then
-              echo '- Missing repository variable `ZED_REGISTRY_URL`.'
-            fi
+            if [ -z "$HARNESS_SHA" ]; then echo '- Missing repository variable `OPTO_SYNC_E2E_GRAPH_HARNESS_SHA`.'; fi
+            if [ -z "$REGISTRY_URL" ]; then echo '- Missing repository variable `ZED_REGISTRY_URL`.'; fi
             echo
             echo 'No live graph, execution-plan, dispatch, or total authorized-visibility claim is made for this run.'
           } >> "$GITHUB_STEP_SUMMARY"
