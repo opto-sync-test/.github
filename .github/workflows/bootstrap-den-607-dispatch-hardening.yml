@@ -1,0 +1,100 @@
+name: Assemble audited DEN-607 dispatcher hardening
+
+on:
+  push:
+    branches:
+      - agent/den-607-zed-consumer-canary
+    paths:
+      - '.bootstrap/dispatch-hardening/ready'
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '.bootstrap/dispatch-hardening/ready'
+      - '.github/workflows/bootstrap-den-607-dispatch-hardening.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact hardening branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          ref: agent/den-607-zed-consumer-canary
+
+      - name: Verify and extract audited source payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check <<'CHECKSUMS'
+          d6f1c628f5cebb88ffdddfb5d80f2f56c805db605d10cc8f7b13dbcde5e29d17  .bootstrap/dispatch-hardening/chunk-000
+          c73d6512c0af45f3a68d295db8c09581fc885f3540b05435e2d40750af4a870b  .bootstrap/dispatch-hardening/chunk-001
+          697d206cae31462415461dcd829574629bdf8afaabc8cd6c92298090def6e9a8  .bootstrap/dispatch-hardening/chunk-002
+          CHECKSUMS
+          cat .bootstrap/dispatch-hardening/chunk-* | base64 --decode > /tmp/den-607-dispatch-hardening.tar.gz
+          echo '6e3889cc9bfcbb41224cfd0c3d7db77d2d46b5157305427ad073f5e8ff3ebd16  /tmp/den-607-dispatch-hardening.tar.gz' | sha256sum --check
+          tar -tzf /tmp/den-607-dispatch-hardening.tar.gz | while IFS= read -r path; do
+            case "$path" in
+              scripts/lib/opto-sync-consumer-common.sh|scripts/lib/opto-sync-consumer-plan.sh|scripts/lib/opto-sync-consumer-dispatch.sh|scripts/opto-sync-consumer-dispatch.test.sh|architecture/opto-sync-consumer-impact-policy.v1.json|architecture/fixtures/opto-sync-consumer-impact.v1.json|architecture/fixtures/opto-sync-consumer-execution-plan.v1.json|architecture/opto-sync-consumer-execution.md) ;;
+              scripts/|scripts/lib/|architecture/|architecture/fixtures/) ;;
+              *) echo "unexpected payload path: $path" >&2; exit 1 ;;
+            esac
+          done
+          tar -xzf /tmp/den-607-dispatch-hardening.tar.gz -C .
+          rm -rf .bootstrap/dispatch-hardening
+
+      - name: Re-run exact source and adversarial checks
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          bash -n \
+            scripts/opto-sync-consumer-dispatch.sh \
+            scripts/lib/opto-sync-consumer-common.sh \
+            scripts/lib/opto-sync-consumer-plan.sh \
+            scripts/lib/opto-sync-consumer-dispatch.sh \
+            scripts/opto-sync-consumer-dispatch.test.sh
+          python3 -m json.tool architecture/opto-sync-consumer-impact-policy.v1.json >/dev/null
+          python3 -m json.tool architecture/fixtures/opto-sync-consumer-impact.v1.json >/dev/null
+          python3 -m json.tool architecture/fixtures/opto-sync-consumer-execution-plan.v1.json >/dev/null
+          scripts/opto-sync-consumer-dispatch.sh plan \
+            --report architecture/fixtures/opto-sync-consumer-impact.v1.json \
+            --output "$RUNNER_TEMP/plan.json"
+          cmp architecture/fixtures/opto-sync-consumer-execution-plan.v1.json "$RUNNER_TEMP/plan.json"
+          timeout 180 bash scripts/opto-sync-consumer-dispatch.test.sh
+          ! grep -R --line-number -- '--location' \
+            scripts/lib scripts/opto-sync-consumer-dispatch.sh
+          ! grep -R --line-number 'limited-to-caller-authorized-visible-inventory' \
+            scripts architecture
+          git diff --check
+
+      - name: Commit exact verified non-workflow hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'opto-sync automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            scripts/lib/opto-sync-consumer-common.sh \
+            scripts/lib/opto-sync-consumer-plan.sh \
+            scripts/lib/opto-sync-consumer-dispatch.sh \
+            scripts/opto-sync-consumer-dispatch.test.sh \
+            architecture/opto-sync-consumer-impact-policy.v1.json \
+            architecture/fixtures/opto-sync-consumer-impact.v1.json \
+            architecture/fixtures/opto-sync-consumer-execution-plan.v1.json \
+            architecture/opto-sync-consumer-execution.md \
+            .bootstrap/dispatch-hardening
+          git diff --cached --check
+          git commit -m 'fix(canary): harden downstream dispatch trust boundaries'
+          git push origin HEAD:agent/den-607-zed-consumer-canary
