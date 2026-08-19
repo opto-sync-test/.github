@@ -1,0 +1,217 @@
+name: Opto-Sync Zed consumer impact canary
+
+on:
+  pull_request:
+    paths:
+      - 'architecture/opto-sync-consumer-impact-policy.v1.json'
+      - '.github/workflows/opto-sync-consumer-impact.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'architecture/opto-sync-consumer-impact-policy.v1.json'
+      - '.github/workflows/opto-sync-consumer-impact.yml'
+  schedule:
+    - cron: '37 8 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - zed-dependency-graph-updated
+      - opto-sync-release-candidate
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  policy-contract:
+    name: Validate immutable cross-org harness policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout test-org policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Validate policy shape and fail-closed modes
+        shell: bash
+        env:
+          CONFIGURED_HARNESS_SHA: ${{ vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          policy = json.loads(
+              Path('architecture/opto-sync-consumer-impact-policy.v1.json').read_text()
+          )
+          assert policy['schemaVersion'] == 1
+          assert policy['root'] == 'opto-sync/opto-sync-clients'
+          assert policy['harnessRepository'] == 'opto-sync/opto-sync-e2e'
+          assert policy['harnessShaVariable'] == 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA'
+          assert policy['registryUrlVariable'] == 'ZED_REGISTRY_URL'
+          assert policy['registryTokenSecret'] == 'ZED_REGISTRY_TOKEN'
+          assert policy['versionPolicy'] == 'all-visible'
+          assert policy['failOn'] == ['graph-only', 'unclassified', 'missing-graphs']
+          assert policy['allowCuratedOnly'] is True
+          assert policy['semantics'] == {
+              'graphView': 'declared',
+              'resolution': 'unresolved-requirements',
+              'privateCoverage': 'caller-authorized-visible-inventory',
+              'harnessRefPolicy': 'full-40-character-commit-sha',
+          }
+          configured = os.environ.get('CONFIGURED_HARNESS_SHA', '')
+          if configured:
+              assert re.fullmatch(r'[0-9a-f]{40}', configured), configured
+          PY
+
+  live-impact-canary:
+    name: Run pinned E2E harness over all visible Zed versions
+    if: >-
+      (github.event_name == 'schedule' ||
+       github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'repository_dispatch') &&
+      vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA != '' &&
+      vars.ZED_REGISTRY_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HARNESS_SHA: ${{ vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA }}
+      ZED_REGISTRY_URL: ${{ vars.ZED_REGISTRY_URL }}
+      ZED_REGISTRY_TOKEN: ${{ secrets.ZED_REGISTRY_TOKEN }}
+    steps:
+      - name: Checkout immutable Opto-Sync impact harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: opto-sync/opto-sync-e2e
+          ref: ${{ env.HARNESS_SHA }}
+          path: harness
+          persist-credentials: false
+
+      - name: Prove exact harness commit and registry policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${#HARNESS_SHA}" -eq 40 ] || {
+            echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be a lowercase 40-character SHA' >&2
+            exit 1
+          }
+          case "$HARNESS_SHA" in
+            *[!0-9a-f]*) echo 'OPTO_SYNC_E2E_GRAPH_HARNESS_SHA must be lowercase hexadecimal' >&2; exit 1 ;;
+          esac
+          actual="$(git -C harness rev-parse HEAD)"
+          [ "$actual" = "$HARNESS_SHA" ] || {
+            echo "expected harness $HARNESS_SHA, checked out $actual" >&2
+            exit 1
+          }
+          case "$ZED_REGISTRY_URL" in
+            https://*|http://localhost:*|http://127.0.0.1:*) ;;
+            *) echo 'ZED_REGISTRY_URL must use HTTPS except for an explicit local canary' >&2; exit 1 ;;
+          esac
+
+      - name: Run graph-derived consumer coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p impact
+          python3 harness/scripts/zed_consumer_graph.py \
+            --registry-url "$ZED_REGISTRY_URL" \
+            --token-env ZED_REGISTRY_TOKEN \
+            --version-policy all-visible \
+            --root opto-sync/opto-sync-clients \
+            --curated-fleet harness/operations/downstream-wrapper-fleet.v1.json \
+            --classification-policy harness/operations/opto-sync-consumer-classification.v1.json \
+            --output impact/opto-sync-consumer-impact.json \
+            --dot-output impact/opto-sync-consumer-impact.dot \
+            --mermaid-output impact/opto-sync-consumer-impact.mmd \
+            --fail-on graph-only,unclassified,missing-graphs
+
+      - name: Assert every graph-confirmed consumer has an execution repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('impact/opto-sync-consumer-impact.json').read_text())
+          missing = [
+              item['repository']
+              for item in report['consumers']
+              if item['coverageStatus'] == 'graph-confirmed' and not item['testRepository']
+          ]
+          if missing:
+              raise SystemExit('graph-confirmed consumers without E2E repositories: ' + ', '.join(missing))
+          assert report['semantics']['graphView'] == 'declared'
+          assert report['semantics']['resolution'] == 'unresolved-requirements'
+          PY
+
+      - name: Add canary summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('impact/opto-sync-consumer-impact.json').read_text())
+          print('## Test-org Opto-Sync consumer impact canary')
+          print()
+          print(f"Pinned harness: `{report['inventory']['inventoryDigest']}` inventory over `{report['inventory']['packageListTotal']}` visible packages.")
+          print()
+          print(f"Direct consumers: **{report['summary']['directConsumers']}**")
+          print(f"Transitive consumers: **{report['summary']['transitiveConsumers']}**")
+          print(f"Curated-only rollout entries: **{report['summary']['curatedOnly']}**")
+          print()
+          print('Graph-only, unclassified, or missing-graph conditions are fatal. Curated-only entries remain visible migration evidence.')
+          PY
+
+      - name: Upload test-org impact evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: opto-sync-test-zed-consumer-impact
+          path: impact/
+          if-no-files-found: error
+          retention-days: 30
+
+  configuration-evidence:
+    name: Report missing immutable harness or registry configuration
+    if: >-
+      (github.event_name == 'schedule' ||
+       github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'repository_dispatch') &&
+      (vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA == '' || vars.ZED_REGISTRY_URL == '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record exact skipped inputs
+        shell: bash
+        env:
+          HARNESS_SHA: ${{ vars.OPTO_SYNC_E2E_GRAPH_HARNESS_SHA }}
+          REGISTRY_URL: ${{ vars.ZED_REGISTRY_URL }}
+          REQUIRE_LIVE: ${{ vars.OPTO_SYNC_REQUIRE_LIVE_ZED_GRAPH }}
+        run: |
+          set -euo pipefail
+          {
+            echo '## Test-org Opto-Sync consumer impact canary'
+            echo
+            if [ -z "$HARNESS_SHA" ]; then
+              echo '- Missing repository variable `OPTO_SYNC_E2E_GRAPH_HARNESS_SHA`.'
+            fi
+            if [ -z "$REGISTRY_URL" ]; then
+              echo '- Missing repository variable `ZED_REGISTRY_URL`.'
+            fi
+            echo
+            echo 'No live/total authorized-visibility claim is made for this run.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$REQUIRE_LIVE" = 'true' ]; then
+            echo 'OPTO_SYNC_REQUIRE_LIVE_ZED_GRAPH=true, so missing canary configuration is fatal.' >&2
+            exit 1
+          fi
