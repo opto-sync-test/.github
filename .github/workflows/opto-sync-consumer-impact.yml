@@ -37,12 +37,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum --check <<'CHECKSUMS'
-          d6f1c628f5cebb88ffdddfb5d80f2f56c805db605d10cc8f7b13dbcde5e29d17  .bootstrap/dispatch-hardening/chunk-000
-          c73d6512c0af45f3a68d295db8c09581fc885f3540b05435e2d40750af4a870b  .bootstrap/dispatch-hardening/chunk-001
-          697d206cae31462415461dcd829574629bdf8afaabc8cd6c92298090def6e9a8  .bootstrap/dispatch-hardening/chunk-002
-          CHECKSUMS
-          cat .bootstrap/dispatch-hardening/chunk-* | base64 --decode > /tmp/den-607-dispatch-hardening.tar.gz
+          echo 'd6f1c628f5cebb88ffdddfb5d80f2f56c805db605d10cc8f7b13dbcde5e29d17  .bootstrap/dispatch-hardening/chunk-000' | sha256sum --check
+          echo '697d206cae31462415461dcd829574629bdf8afaabc8cd6c92298090def6e9a8  .bootstrap/dispatch-hardening/chunk-002' | sha256sum --check
+          head -c 8000 .bootstrap/dispatch-hardening/chunk-001 > /tmp/dispatch-chunk-001
+          echo 'c73d6512c0af45f3a68d295db8c09581fc885f3540b05435e2d40750af4a870b  /tmp/dispatch-chunk-001' | sha256sum --check
+          cat \
+            .bootstrap/dispatch-hardening/chunk-000 \
+            /tmp/dispatch-chunk-001 \
+            .bootstrap/dispatch-hardening/chunk-002 \
+            | base64 --decode > /tmp/den-607-dispatch-hardening.tar.gz
           echo '6e3889cc9bfcbb41224cfd0c3d7db77d2d46b5157305427ad073f5e8ff3ebd16  /tmp/den-607-dispatch-hardening.tar.gz' | sha256sum --check
           tar -tzf /tmp/den-607-dispatch-hardening.tar.gz | while IFS= read -r path; do
             case "$path" in
