@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "root": "opto-sync/opto-sync-clients",
+  "harnessRepository": "opto-sync/opto-sync-e2e",
+  "harnessShaVariable": "OPTO_SYNC_E2E_GRAPH_HARNESS_SHA",
+  "registryUrlVariable": "ZED_REGISTRY_URL",
+  "registryTokenSecret": "ZED_REGISTRY_TOKEN",
+  "versionPolicy": "all-visible",
+  "failOn": [
+    "graph-only",
+    "unclassified",
+    "missing-graphs"
+  ],
+  "allowCuratedOnly": true,
+  "semantics": {
+    "graphView": "declared",
+    "resolution": "unresolved-requirements",
+    "privateCoverage": "caller-authorized-visible-inventory",
+    "harnessRefPolicy": "full-40-character-commit-sha"
+  }
+}
