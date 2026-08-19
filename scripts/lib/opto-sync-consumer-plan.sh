@@ -26,8 +26,10 @@ plan_command() {
   require_command jq
 
   mkdir -p "$(dirname "$output")"
+  refuse_symlink_output "$output"
   local temporary
   temporary="$(mktemp "${output}.tmp.XXXXXX")"
+  chmod 600 "$temporary"
   trap 'rm -f "${temporary:-}"' RETURN
 
   jq --exit-status --sort-keys \
@@ -40,7 +42,9 @@ plan_command() {
     --argjson min_targets "$min_targets" \
     --argjson max_targets "$max_targets" '
       def coordinate:
-        type == "string" and test("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$");
+        type == "string" and
+        test("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$") and
+        (split("/") | length == 2 and all(.[]; . != "." and . != ".." and length <= 128));
       def issue_id:
         type == "string" and test("^[A-Z][A-Z0-9]+-[1-9][0-9]*$");
       def classification:
@@ -58,7 +62,16 @@ plan_command() {
            $report.semantics.privateCoverage != $private_coverage
         then fail("consumer execution requires caller-scoped declared unresolved graph semantics") else . end
       | if ($report.consumers | type) != "array" then fail("impact consumers must be an array") else . end
+      | if ($report.consumers | length) > 100000 then fail("impact consumer count exceeds the safety limit") else . end
       | if ($report.gaps | type) != "object" then fail("impact gaps must be an object") else . end
+      | if (($report.gaps.graphOnly | type) != "array" or
+            ($report.gaps.curatedOnly | type) != "array" or
+            ($report.gaps.unclassified | type) != "array")
+        then fail("impact gap collections must be arrays") else . end
+      | if (($report.inventory.missingGraphCount | type) != "number" or
+            ($report.inventory.missingGraphCount | floor) != $report.inventory.missingGraphCount or
+            $report.inventory.missingGraphCount < 0)
+        then fail("missing graph count must be a non-negative integer") else . end
       | if (($report.gaps.graphOnly // []) | length) != 0
         then fail("graph-only consumers must be reconciled before execution") else . end
       | if (($report.gaps.unclassified // []) | length) != 0
@@ -130,5 +143,6 @@ plan_command() {
     ' "$report" > "$temporary" || die 'impact report failed execution-plan validation'
 
   mv "$temporary" "$output"
+  chmod 600 "$output"
   trap - RETURN
 }
