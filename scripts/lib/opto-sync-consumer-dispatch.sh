@@ -29,6 +29,7 @@ dispatch_command() {
   require_positive_integer "$wait_timeout" '--wait-timeout-seconds'
   api_url="${api_url%/}"
   require_command jq
+  require_command python3
 
   CURL_BIN="${CURL_BIN:-curl}"
   command -v "$CURL_BIN" >/dev/null 2>&1 || [[ -x "$CURL_BIN" ]] || die "curl implementation is unavailable: $CURL_BIN"
@@ -64,7 +65,7 @@ dispatch_command() {
     ' "$plan" >/dev/null || die 'execution plan failed dispatch validation'
 
   mkdir -p "$(dirname "$receipts")"
-  local work_dir plan_digest workflow_file workflow_ref target_count
+  local work_dir plan_digest workflow_file workflow_path workflow_ref target_count
   local preflight_ndjson preflight_json dispatches_ndjson dispatches_json runs_ndjson runs_json
   work_dir="$(mktemp -d)"
   trap 'rm -rf "${work_dir:-}"' RETURN
@@ -78,35 +79,91 @@ dispatch_command() {
   : > "$dispatches_ndjson"
   plan_digest="$(sha256_file "$plan")"
   workflow_file="$(jq -r '.workflow.file' "$plan")"
+  workflow_path="$(jq -r '.workflow.path' "$plan")"
   workflow_ref="$(jq -r '.workflow.ref' "$plan")"
   target_count="$(jq -r '.targetCount' "$plan")"
 
-  # Preflight every target before dispatching any workflow. This prevents a
-  # stale or missing workflow in one repository from causing an avoidable
-  # partially dispatched fleet.
-  local index=0 target repository metadata_body metadata_code workflow_state workflow_path workflow_id
+  # Preflight every target before dispatching any workflow. In addition to
+  # checking workflow metadata, resolve the requested branch to an immutable
+  # commit and inspect the workflow blob at that exact commit. Every returned
+  # run must later match this exact head, closing the branch-movement TOCTOU
+  # window between preflight and dispatch.
+  local index=0 target repository metadata_body metadata_code workflow_state workflow_metadata_path workflow_id
+  local ref_body ref_code expected_head_sha contents_body contents_code workflow_blob_sha workflow_source
   while IFS= read -r target; do
     index=$((index + 1))
     repository="$(jq -r '.testRepository' <<<"$target")"
+
     metadata_body="$work_dir/workflow-${index}.json"
     metadata_code="$(curl_request GET \
       "$api_url/repos/$repository/actions/workflows/$workflow_file" \
       "$metadata_body")"
-    [[ "$metadata_code" == '200' ]] || \
-      die "$repository: workflow lookup returned HTTP $metadata_code"
+    [[ "$metadata_code" == '200' ]] || die "$repository: workflow lookup returned HTTP $metadata_code"
     workflow_state="$(jq -r '.state // empty' "$metadata_body")"
-    workflow_path="$(jq -r '.path // empty' "$metadata_body")"
+    workflow_metadata_path="$(jq -r '.path // empty' "$metadata_body")"
     workflow_id="$(jq -r '.id // empty' "$metadata_body")"
     [[ "$workflow_state" == 'active' ]] || die "$repository: target workflow is not active"
-    [[ "$workflow_path" == ".github/workflows/$workflow_file" ]] || \
-      die "$repository: target workflow path does not match the execution contract"
+    [[ "$workflow_metadata_path" == "$workflow_path" ]] || die "$repository: target workflow path does not match the execution contract"
     [[ "$workflow_id" =~ ^[1-9][0-9]*$ ]] || die "$repository: target workflow has no positive numeric id"
+
+    ref_body="$work_dir/ref-${index}.json"
+    ref_code="$(curl_request GET "$api_url/repos/$repository/commits/$workflow_ref" "$ref_body")"
+    [[ "$ref_code" == '200' ]] || die "$repository: workflow ref lookup returned HTTP $ref_code"
+    expected_head_sha="$(jq -r '.sha // empty' "$ref_body")"
+    [[ "$expected_head_sha" =~ ^[0-9a-f]{40}$ ]] || die "$repository: workflow ref did not resolve to a full lowercase commit SHA"
+
+    contents_body="$work_dir/workflow-contents-${index}.json"
+    contents_code="$(curl_request GET \
+      "$api_url/repos/$repository/contents/$workflow_path?ref=$expected_head_sha" \
+      "$contents_body")"
+    [[ "$contents_code" == '200' ]] || die "$repository: immutable workflow content lookup returned HTTP $contents_code"
+    workflow_blob_sha="$(jq -r '.sha // empty' "$contents_body")"
+    [[ "$workflow_blob_sha" =~ ^[0-9a-f]{40}$ ]] || die "$repository: immutable workflow content has no full blob SHA"
+    jq --exit-status --arg path "$workflow_path" '
+      .type == "file" and .path == $path and .encoding == "base64" and
+      (.size | type == "number" and . > 0) and
+      (.content | type == "string" and length > 0)
+    ' "$contents_body" >/dev/null || die "$repository: immutable workflow content response violated the file contract"
+
+    workflow_source="$work_dir/workflow-source-${index}.yml"
+    python3 - "$contents_body" "$workflow_source" <<'PY'
+import base64
+import json
+import pathlib
+import sys
+
+payload = json.loads(pathlib.Path(sys.argv[1]).read_text())
+try:
+    decoded = base64.b64decode(payload['content'], validate=False).decode('utf-8')
+except Exception as exc:
+    raise SystemExit(f'invalid workflow base64/UTF-8 content: {exc}')
+required = (
+    'workflow_dispatch:',
+    'live_e2e:',
+    'OPTO_SYNC_REQUIRE_BROWSER=1',
+    'npm run test:node',
+    'npm run test:browser',
+    'downstream-product.e2e.test.mjs',
+)
+missing = [token for token in required if token not in decoded]
+if missing:
+    raise SystemExit('workflow is missing required Opto-Sync conformance markers: ' + ', '.join(missing))
+pathlib.Path(sys.argv[2]).write_text(decoded)
+PY
+
     jq -nc \
       --arg repository "$repository" \
       --arg workflow_path "$workflow_path" \
+      --arg workflow_blob_sha "$workflow_blob_sha" \
+      --arg expected_head_sha "$expected_head_sha" \
       --argjson workflow_id "$workflow_id" \
-      '{testRepository: $repository, workflowId: $workflow_id, workflowPath: $workflow_path}' \
-      >> "$preflight_ndjson"
+      '{
+        testRepository: $repository,
+        workflowId: $workflow_id,
+        workflowPath: $workflow_path,
+        workflowBlobSha: $workflow_blob_sha,
+        expectedHeadSha: $expected_head_sha
+      }' >> "$preflight_ndjson"
   done < <(jq -c '.targets[]' "$plan")
   [[ "$index" == "$target_count" ]] || die 'preflight target count changed while reading the plan'
   jq -s --sort-keys 'sort_by(.testRepository)' "$preflight_ndjson" > "$preflight_json"
@@ -115,26 +172,27 @@ dispatch_command() {
   while IFS= read -r target; do
     repository="$(jq -r '.testRepository' <<<"$target")"
     workflow_id="$(jq -r '.workflowId' <<<"$target")"
-    workflow_path="$(jq -r '.workflowPath' <<<"$target")"
+    workflow_metadata_path="$(jq -r '.workflowPath' <<<"$target")"
+    workflow_blob_sha="$(jq -r '.workflowBlobSha' <<<"$target")"
+    expected_head_sha="$(jq -r '.expectedHeadSha' <<<"$target")"
     dispatch_body="$(jq -nc --arg ref "$workflow_ref" '{ref: $ref, inputs: {live_e2e: true}}')"
     dispatch_response="$work_dir/dispatch-${workflow_id}.json"
     dispatch_code="$(curl_request POST \
       "$api_url/repos/$repository/actions/workflows/$workflow_file/dispatches" \
       "$dispatch_response" "$dispatch_body")"
-    [[ "$dispatch_code" == '200' ]] || \
-      die "$repository: workflow dispatch returned HTTP $dispatch_code; API version $api_version requires a workflow-run response"
+    [[ "$dispatch_code" == '200' ]] || die "$repository: workflow dispatch returned HTTP $dispatch_code; API version $api_version requires a workflow-run response"
     workflow_run_id="$(jq -r '.workflow_run_id // empty' "$dispatch_response")"
     run_url="$(jq -r '.run_url // empty' "$dispatch_response")"
     html_url="$(jq -r '.html_url // empty' "$dispatch_response")"
     [[ "$workflow_run_id" =~ ^[1-9][0-9]*$ ]] || die "$repository: dispatch response has no positive workflow run id"
-    [[ "$run_url" == "$api_url/repos/$repository/actions/runs/$workflow_run_id" ]] || \
-      die "$repository: dispatch response run URL does not match the requested repository and run id"
-    [[ "$html_url" =~ ^https://[^[:space:]]+/actions/runs/$workflow_run_id$ ]] || \
-      die "$repository: dispatch response has an invalid HTML run URL"
+    [[ "$run_url" == "$api_url/repos/$repository/actions/runs/$workflow_run_id" ]] || die "$repository: dispatch response run URL does not match the requested repository and run id"
+    [[ "$html_url" =~ ^https://[^[:space:]]+/actions/runs/$workflow_run_id$ ]] || die "$repository: dispatch response has an invalid HTML run URL"
     jq -nc \
       --arg repository "$repository" \
-      --arg workflow_path "$workflow_path" \
+      --arg workflow_path "$workflow_metadata_path" \
       --arg workflow_ref "$workflow_ref" \
+      --arg workflow_blob_sha "$workflow_blob_sha" \
+      --arg expected_head_sha "$expected_head_sha" \
       --arg run_url "$run_url" \
       --arg html_url "$html_url" \
       --argjson workflow_id "$workflow_id" \
@@ -144,6 +202,8 @@ dispatch_command() {
           workflowId: $workflow_id,
           workflowPath: $workflow_path,
           workflowRef: $workflow_ref,
+          workflowBlobSha: $workflow_blob_sha,
+          expectedHeadSha: $expected_head_sha,
           workflowRunId: $workflow_run_id,
           runUrl: $run_url,
           htmlUrl: $html_url,
@@ -153,7 +213,7 @@ dispatch_command() {
   done < <(jq -c '.[]' "$preflight_json")
   jq -s --sort-keys 'sort_by(.testRepository)' "$dispatches_ndjson" > "$dispatches_json"
 
-  local deadline all_completed run_record run_body run_code run_id run_status conclusion
+  local deadline all_completed run_record run_body run_code run_id run_status conclusion run_head_sha run_head_branch run_path
   deadline=$((SECONDS + wait_timeout))
   while true; do
     : > "$runs_ndjson"
@@ -163,28 +223,40 @@ dispatch_command() {
       workflow_id="$(jq -r '.workflowId' <<<"$run_record")"
       run_id="$(jq -r '.workflowRunId' <<<"$run_record")"
       run_url="$(jq -r '.runUrl' <<<"$run_record")"
+      expected_head_sha="$(jq -r '.expectedHeadSha' <<<"$run_record")"
       run_body="$work_dir/run-${run_id}.json"
       run_code="$(curl_request GET "$run_url" "$run_body")"
       [[ "$run_code" == '200' ]] || die "$repository: workflow run $run_id lookup returned HTTP $run_code"
       jq --exit-status \
         --arg repository "$repository" \
+        --arg workflow_ref "$workflow_ref" \
+        --arg workflow_path "$workflow_path" \
+        --arg expected_head_sha "$expected_head_sha" \
         --argjson workflow_id "$workflow_id" \
         --argjson run_id "$run_id" '
           .id == $run_id and
           .workflow_id == $workflow_id and
           .event == "workflow_dispatch" and
+          .head_sha == $expected_head_sha and
+          .head_branch == $workflow_ref and
+          .path == ($workflow_path + "@" + $workflow_ref) and
+          .repository.full_name == $repository and
           (.status | type == "string" and length > 0) and
-          ((.repository.full_name // $repository) == $repository) and
           (if .status == "completed" then (.conclusion | type == "string" and length > 0) else true end)
-        ' "$run_body" >/dev/null || die "$repository: workflow run $run_id violated the completion contract"
+        ' "$run_body" >/dev/null || die "$repository: workflow run $run_id violated the immutable completion contract"
       run_status="$(jq -r '.status' "$run_body")"
       conclusion="$(jq -r '.conclusion // empty' "$run_body")"
+      run_head_sha="$(jq -r '.head_sha' "$run_body")"
+      run_head_branch="$(jq -r '.head_branch' "$run_body")"
+      run_path="$(jq -r '.path' "$run_body")"
       [[ "$run_status" == 'completed' ]] || all_completed='false'
       jq -nc \
         --arg repository "$repository" \
         --arg run_status "$run_status" \
         --arg conclusion "$conclusion" \
-        --arg head_sha "$(jq -r '.head_sha // empty' "$run_body")" \
+        --arg head_sha "$run_head_sha" \
+        --arg head_branch "$run_head_branch" \
+        --arg run_path "$run_path" \
         --arg created_at "$(jq -r '.created_at // empty' "$run_body")" \
         --arg updated_at "$(jq -r '.updated_at // empty' "$run_body")" \
         --argjson workflow_run_id "$run_id" \
@@ -195,7 +267,9 @@ dispatch_command() {
             runStatus: $run_status,
             conclusion: (if $conclusion == "" then null else $conclusion end),
             runAttempt: $run_attempt,
-            headSha: (if $head_sha == "" then null else $head_sha end),
+            headSha: $head_sha,
+            headBranch: $head_branch,
+            runPath: $run_path,
             createdAt: (if $created_at == "" then null else $created_at end),
             updatedAt: (if $updated_at == "" then null else $updated_at end)
           }
@@ -207,8 +281,7 @@ dispatch_command() {
       break
     fi
     if (( SECONDS >= deadline )); then
-      write_receipts "$dispatches_json" "$runs_json" "$receipts" 'timed-out' \
-        "$plan_digest" "$api_url" "$api_version"
+      write_receipts "$dispatches_json" "$runs_json" "$receipts" 'timed-out' "$plan_digest" "$api_url" "$api_version"
       die "consumer workflow completion timed out after ${wait_timeout}s; receipts were written"
     fi
     sleep "$poll_interval"
@@ -217,11 +290,9 @@ dispatch_command() {
   local successful_count
   successful_count="$(jq '[.[] | select(.runStatus == "completed" and .conclusion == "success")] | length' "$runs_json")"
   if [[ "$successful_count" == "$target_count" ]]; then
-    write_receipts "$dispatches_json" "$runs_json" "$receipts" 'completed' \
-      "$plan_digest" "$api_url" "$api_version"
+    write_receipts "$dispatches_json" "$runs_json" "$receipts" 'completed' "$plan_digest" "$api_url" "$api_version"
   else
-    write_receipts "$dispatches_json" "$runs_json" "$receipts" 'failed' \
-      "$plan_digest" "$api_url" "$api_version"
+    write_receipts "$dispatches_json" "$runs_json" "$receipts" 'failed' "$plan_digest" "$api_url" "$api_version"
     local failed_repositories
     failed_repositories="$(jq -r '[.[] | select(.conclusion != "success") | .testRepository] | join(", ")' "$runs_json")"
     die "consumer workflows completed without universal success: $failed_repositories"

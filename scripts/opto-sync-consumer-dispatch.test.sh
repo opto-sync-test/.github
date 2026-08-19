@@ -26,45 +26,29 @@ bash -n "$subject" "$root"/scripts/lib/opto-sync-consumer-*.sh
 cmp "$work/plan-a.json" "$work/plan-b.json"
 cmp "$expected" "$work/plan-a.json"
 
-jq '.gaps.graphOnly = ["example-unmapped/consumer"] | .gaps.unclassified = ["example-unmapped/consumer"]' \
-  "$fixture" > "$work/graph-gap.json"
-expect_failure "$subject" plan \
-  --report "$work/graph-gap.json" --output "$work/graph-gap-plan.json"
+jq '.gaps.graphOnly = ["example-unmapped/consumer"] | .gaps.unclassified = ["example-unmapped/consumer"]' "$fixture" > "$work/graph-gap.json"
+expect_failure "$subject" plan --report "$work/graph-gap.json" --output "$work/graph-gap-plan.json"
 
-jq '.inventory.missingGraphCount = 1' \
-  "$fixture" > "$work/missing-graph.json"
-expect_failure "$subject" plan \
-  --report "$work/missing-graph.json" --output "$work/missing-graph-plan.json"
+jq '.inventory.missingGraphCount = 1' "$fixture" > "$work/missing-graph.json"
+expect_failure "$subject" plan --report "$work/missing-graph.json" --output "$work/missing-graph-plan.json"
 
-jq '.semantics.privateCoverage = "global"' \
-  "$fixture" > "$work/invalid-scope.json"
-expect_failure "$subject" plan \
-  --report "$work/invalid-scope.json" --output "$work/invalid-scope-plan.json"
+jq '.semantics.privateCoverage = "global"' "$fixture" > "$work/invalid-scope.json"
+expect_failure "$subject" plan --report "$work/invalid-scope.json" --output "$work/invalid-scope-plan.json"
 
-jq '.consumers |= map(if .repository == "sonus-auris/sonus-auris-sync" then .testRepository = null else . end)' \
-  "$fixture" > "$work/missing-test-repository.json"
-expect_failure "$subject" plan \
-  --report "$work/missing-test-repository.json" --output "$work/missing.json"
+jq '.consumers |= map(if .repository == "sonus-auris/sonus-auris-sync" then .testRepository = null else . end)' "$fixture" > "$work/missing-test-repository.json"
+expect_failure "$subject" plan --report "$work/missing-test-repository.json" --output "$work/missing.json"
 
-jq '.consumers |= map(if .repository == "sonus-auris/sonus-auris-sync" then .linearIssue = "bad" else . end)' \
-  "$fixture" > "$work/invalid-linear-issue.json"
-expect_failure "$subject" plan \
-  --report "$work/invalid-linear-issue.json" --output "$work/invalid-linear-issue-plan.json"
+jq '.consumers |= map(if .repository == "sonus-auris/sonus-auris-sync" then .linearIssue = "bad" else . end)' "$fixture" > "$work/invalid-linear-issue.json"
+expect_failure "$subject" plan --report "$work/invalid-linear-issue.json" --output "$work/invalid-linear-issue-plan.json"
 
-jq '.consumers += [.consumers[] | select(.repository == "sonus-auris/sonus-auris-sync")]' \
-  "$fixture" > "$work/duplicate-consumer.json"
-expect_failure "$subject" plan \
-  --report "$work/duplicate-consumer.json" --output "$work/duplicate.json"
+jq '.consumers += [.consumers[] | select(.repository == "sonus-auris/sonus-auris-sync")]' "$fixture" > "$work/duplicate-consumer.json"
+expect_failure "$subject" plan --report "$work/duplicate-consumer.json" --output "$work/duplicate.json"
 
-jq '.consumers |= map(.coverageStatus = "curated-only" | .minimumDepth = null)' \
-  "$fixture" > "$work/no-confirmed.json"
-expect_failure "$subject" plan \
-  --report "$work/no-confirmed.json" --output "$work/empty.json"
+jq '.consumers |= map(.coverageStatus = "curated-only" | .minimumDepth = null)' "$fixture" > "$work/no-confirmed.json"
+expect_failure "$subject" plan --report "$work/no-confirmed.json" --output "$work/empty.json"
 
-expect_failure "$subject" plan \
-  --report "$fixture" --output "$work/too-many.json" --max-targets 1
-expect_failure "$subject" dispatch \
-  --plan "$work/plan-a.json" --receipts "$work/no-token.json" --token-env MISSING_TOKEN
+expect_failure "$subject" plan --report "$fixture" --output "$work/too-many.json" --max-targets 1
+expect_failure "$subject" dispatch --plan "$work/plan-a.json" --receipts "$work/no-token.json" --token-env MISSING_TOKEN
 
 cat > "$work/fake-curl" <<'FAKE'
 #!/usr/bin/env bash
@@ -101,8 +85,24 @@ printf '%s %s\n' "$method" "$url" >> "${FAKE_CURL_LOG:?}"
 api_root="${url%%/repos/*}"
 repository="${url#*/repos/}"
 repository="${repository%%/actions/*}"
+repository="${repository%%/commits/*}"
+repository="${repository%%/contents/*}"
 workflow_id="$(printf '%s' "$repository" | cksum | awk '{print $1}')"
 run_id="$((workflow_id + 1000000))"
+case "$repository" in
+  sonus-auris/sonus-auris-e2e)
+    expected_head_sha='1111111111111111111111111111111111111111'
+    workflow_blob_sha='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    ;;
+  voxletra/voxletra-e2e)
+    expected_head_sha='2222222222222222222222222222222222222222'
+    workflow_blob_sha='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    ;;
+  *)
+    expected_head_sha='3333333333333333333333333333333333333333'
+    workflow_blob_sha='cccccccccccccccccccccccccccccccccccccccc'
+    ;;
+esac
 
 if [[ "$method" == 'GET' && "$url" == */actions/workflows/opto-sync-wrapper-e2e.yml ]]; then
   if [[ -n "${FAKE_MISSING_REPOSITORY:-}" && "$repository" == "$FAKE_MISSING_REPOSITORY" ]]; then
@@ -110,19 +110,31 @@ if [[ "$method" == 'GET' && "$url" == */actions/workflows/opto-sync-wrapper-e2e.
     printf '404'
     exit 0
   fi
-  printf '{"id":%s,"path":".github/workflows/opto-sync-wrapper-e2e.yml","state":"active"}\n' \
-    "$workflow_id" > "$output"
+  printf '{"id":%s,"path":".github/workflows/opto-sync-wrapper-e2e.yml","state":"active"}\n' "$workflow_id" > "$output"
+  printf '200'
+elif [[ "$method" == 'GET' && "$url" == */commits/main ]]; then
+  printf '{"sha":"%s"}\n' "$expected_head_sha" > "$output"
+  printf '200'
+elif [[ "$method" == 'GET' && "$url" == */contents/.github/workflows/opto-sync-wrapper-e2e.yml\?ref=* ]]; then
+  if [[ -n "${FAKE_WEAK_WORKFLOW:-}" ]]; then
+    content='bmFtZTogd2Vha2VuZWQK'
+  else
+    content='bmFtZTogb3B0by1zeW5jIHdyYXBwZXIgZTJlCm9uOgogIHdvcmtmbG93X2Rpc3BhdGNoOgogICAgaW5wdXRzOgogICAgICBsaXZlX2UyZToKam9iczoKICB4OgogICAgc3RlcHM6CiAgICAgIC0gcnVuOiB8CiAgICAgICAgICBPUFRPX1NZTkNfUkVRVUlSRV9CUk9XU0VSPTEgbnBtIHJ1biB0ZXN0OmJyb3dzZXIKICAgICAgICAgIG5wbSBydW4gdGVzdDpub2RlCiAgICAgICAgICBjcCBwcm9kdWN0LmUyZS50ZXN0Lm1qcyB0ZXN0L2Rvd25zdHJlYW0tcHJvZHVjdC5lMmUudGVzdC5tanMK'
+  fi
+  printf '{"type":"file","path":".github/workflows/opto-sync-wrapper-e2e.yml","encoding":"base64","size":256,"sha":"%s","content":"%s"}\n' "$workflow_blob_sha" "$content" > "$output"
   printf '200'
 elif [[ "$method" == 'POST' && "$url" == */actions/workflows/opto-sync-wrapper-e2e.yml/dispatches ]]; then
   jq -e '.ref == "main" and .inputs.live_e2e == true' <<<"$data" >/dev/null || exit 93
-  printf '{"workflow_run_id":%s,"run_url":"%s/repos/%s/actions/runs/%s","html_url":"https://github.com/%s/actions/runs/%s"}\n' \
-    "$run_id" "$api_root" "$repository" "$run_id" "$repository" "$run_id" > "$output"
+  printf '{"workflow_run_id":%s,"run_url":"%s/repos/%s/actions/runs/%s","html_url":"https://github.com/%s/actions/runs/%s"}\n' "$run_id" "$api_root" "$repository" "$run_id" "$repository" "$run_id" > "$output"
   printf '200'
 elif [[ "$method" == 'GET' && "$url" == */actions/runs/* ]]; then
   requested_run_id="${url##*/actions/runs/}"
   conclusion="${FAKE_RUN_CONCLUSION:-success}"
-  printf '{"id":%s,"workflow_id":%s,"event":"workflow_dispatch","status":"completed","conclusion":"%s","repository":{"full_name":"%s"},"run_attempt":1,"head_sha":"0123456789012345678901234567890123456789","created_at":"2026-08-19T02:00:00Z","updated_at":"2026-08-19T02:01:00Z"}\n' \
-    "$requested_run_id" "$workflow_id" "$conclusion" "$repository" > "$output"
+  run_head_sha="$expected_head_sha"
+  if [[ -n "${FAKE_RUN_HEAD_DRIFT:-}" ]]; then
+    run_head_sha='ffffffffffffffffffffffffffffffffffffffff'
+  fi
+  printf '{"id":%s,"workflow_id":%s,"event":"workflow_dispatch","status":"completed","conclusion":"%s","repository":{"full_name":"%s"},"run_attempt":1,"head_sha":"%s","head_branch":"main","path":".github/workflows/opto-sync-wrapper-e2e.yml@main","created_at":"2026-08-19T02:00:00Z","updated_at":"2026-08-19T02:01:00Z"}\n' "$requested_run_id" "$workflow_id" "$conclusion" "$repository" "$run_head_sha" > "$output"
   printf '200'
 else
   printf '{"message":"not found"}\n' > "$output"
@@ -152,40 +164,42 @@ jq -e '
   .successfulCount == 2 and
   .failedCount == 0 and
   .pendingCount == 0 and
-  ([.dispatches[].testRepository] == [
-    "sonus-auris/sonus-auris-e2e",
-    "voxletra/voxletra-e2e"
-  ]) and
+  ([.dispatches[].testRepository] == ["sonus-auris/sonus-auris-e2e", "voxletra/voxletra-e2e"]) and
   (all(.dispatches[];
     .dispatchStatus == "accepted" and
     .runStatus == "completed" and
     .conclusion == "success" and
-    (.workflowRunId | type == "number")
+    (.workflowRunId | type == "number") and
+    (.workflowBlobSha | test("^[0-9a-f]{40}$")) and
+    (.expectedHeadSha | test("^[0-9a-f]{40}$")) and
+    .headSha == .expectedHeadSha and
+    .headBranch == "main" and
+    .runPath == ".github/workflows/opto-sync-wrapper-e2e.yml@main"
   ))
 ' "$work/receipts.json" >/dev/null
-[[ "$(wc -l < "$FAKE_CURL_LOG" | tr -d ' ')" == '6' ]] || \
-  fail 'expected two workflow lookups, two dispatches, and two exact run polls'
+[[ "$(wc -l < "$FAKE_CURL_LOG" | tr -d ' ')" == '10' ]] || fail 'expected six immutable preflight reads, two dispatches, and two exact run polls'
 ! grep -Fq "$TEST_DISPATCH_TOKEN" "$FAKE_CURL_LOG" || fail 'token leaked into the dispatch log'
 
 : > "$FAKE_CURL_LOG"
 export FAKE_MISSING_REPOSITORY='voxletra/voxletra-e2e'
-expect_failure "$subject" dispatch \
-  --plan "$work/plan-a.json" \
-  --receipts "$work/preflight-failure.json" \
-  --token-env TEST_DISPATCH_TOKEN \
-  --poll-interval-seconds 1 \
-  --wait-timeout-seconds 10
+expect_failure "$subject" dispatch --plan "$work/plan-a.json" --receipts "$work/preflight-failure.json" --token-env TEST_DISPATCH_TOKEN --poll-interval-seconds 1 --wait-timeout-seconds 10
 ! grep -q '^POST ' "$FAKE_CURL_LOG" || fail 'dispatcher sent a workflow before every target passed preflight'
 unset FAKE_MISSING_REPOSITORY
 
 : > "$FAKE_CURL_LOG"
+export FAKE_WEAK_WORKFLOW='1'
+expect_failure "$subject" dispatch --plan "$work/plan-a.json" --receipts "$work/weak-workflow.json" --token-env TEST_DISPATCH_TOKEN --poll-interval-seconds 1 --wait-timeout-seconds 10
+! grep -q '^POST ' "$FAKE_CURL_LOG" || fail 'dispatcher sent a workflow whose immutable source failed the conformance marker gate'
+unset FAKE_WEAK_WORKFLOW
+
+: > "$FAKE_CURL_LOG"
+export FAKE_RUN_HEAD_DRIFT='1'
+expect_failure "$subject" dispatch --plan "$work/plan-a.json" --receipts "$work/head-drift.json" --token-env TEST_DISPATCH_TOKEN --poll-interval-seconds 1 --wait-timeout-seconds 10
+unset FAKE_RUN_HEAD_DRIFT
+
+: > "$FAKE_CURL_LOG"
 export FAKE_RUN_CONCLUSION='failure'
-expect_failure "$subject" dispatch \
-  --plan "$work/plan-a.json" \
-  --receipts "$work/failure-receipts.json" \
-  --token-env TEST_DISPATCH_TOKEN \
-  --poll-interval-seconds 1 \
-  --wait-timeout-seconds 10
+expect_failure "$subject" dispatch --plan "$work/plan-a.json" --receipts "$work/failure-receipts.json" --token-env TEST_DISPATCH_TOKEN --poll-interval-seconds 1 --wait-timeout-seconds 10
 jq -e '
   .status == "failed" and
   .completedCount == 2 and
