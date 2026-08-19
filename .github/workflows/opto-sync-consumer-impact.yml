@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout test-org policy
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -130,12 +130,12 @@ jobs:
       REQUIRE_CONSUMER_DISPATCH: ${{ vars.OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH }}
     steps:
       - name: Checkout test-org execution policy
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - name: Checkout immutable Opto-Sync impact harness
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: opto-sync/opto-sync-e2e
           ref: ${{ env.HARNESS_SHA }}
@@ -301,7 +301,7 @@ jobs:
 
       - name: Upload graph, execution-plan, and dispatch evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: opto-sync-test-zed-consumer-impact
           path: impact/
