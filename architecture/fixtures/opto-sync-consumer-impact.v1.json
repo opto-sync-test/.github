@@ -1,0 +1,46 @@
+{
+  "schema": "opto-sync/consumer-impact/v1",
+  "root": "opto-sync/opto-sync-clients",
+  "semantics": {
+    "graphView": "declared",
+    "resolution": "unresolved-requirements",
+    "privateCoverage": "limited-to-caller-authorized-visible-inventory"
+  },
+  "inventory": {
+    "inventoryDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "missingGraphCount": 0
+  },
+  "consumers": [
+    {
+      "repository": "zed-pkg/zed-sync",
+      "coverageStatus": "curated-only",
+      "adoptionClassification": "adapted-concept",
+      "minimumDepth": null,
+      "testRepository": "zed-pkg/zed-e2e",
+      "linearIssue": "DEN-1386"
+    },
+    {
+      "repository": "sonus-auris/sonus-auris-sync",
+      "coverageStatus": "graph-confirmed",
+      "adoptionClassification": "exact-pin",
+      "minimumDepth": 1,
+      "testRepository": "sonus-auris/sonus-auris-e2e",
+      "linearIssue": "DEN-1386"
+    },
+    {
+      "repository": "voxletra/voxletra-sync",
+      "coverageStatus": "graph-confirmed",
+      "adoptionClassification": "exact-pin",
+      "minimumDepth": 2,
+      "testRepository": "voxletra/voxletra-e2e",
+      "linearIssue": "DEN-1386"
+    }
+  ],
+  "gaps": {
+    "graphOnly": [],
+    "curatedOnly": [
+      "zed-pkg/zed-sync"
+    ],
+    "unclassified": []
+  }
+}

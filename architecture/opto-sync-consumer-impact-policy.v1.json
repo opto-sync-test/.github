@@ -12,10 +12,36 @@
     "missing-graphs"
   ],
   "allowCuratedOnly": true,
+  "consumerExecution": {
+    "planSchema": "opto-sync/consumer-execution-plan/v1",
+    "receiptSchema": "opto-sync/consumer-dispatch-receipts/v1",
+    "dispatchTokenSecret": "OPTO_SYNC_TEST_DISPATCH_TOKEN",
+    "requireDispatchVariable": "OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH",
+    "apiVersion": "2026-03-10",
+    "dispatchMode": "workflow_dispatch",
+    "dispatchResponseRequiresWorkflowRunId": true,
+    "workflowFile": "opto-sync-wrapper-e2e.yml",
+    "workflowPath": ".github/workflows/opto-sync-wrapper-e2e.yml",
+    "workflowRef": "main",
+    "workflowInputs": {
+      "live_e2e": true
+    },
+    "coverageStatus": "graph-confirmed",
+    "deduplicateBy": "testRepository",
+    "minimumTargets": 1,
+    "maximumTargets": 50,
+    "completionRequired": true,
+    "successfulConclusions": [
+      "success"
+    ],
+    "defaultPollIntervalSeconds": 30,
+    "defaultWaitTimeoutSeconds": 3600,
+    "acceptedDispatchIsNotCompletion": true
+  },
   "semantics": {
     "graphView": "declared",
     "resolution": "unresolved-requirements",
-    "privateCoverage": "caller-authorized-visible-inventory",
+    "privateCoverage": "limited-to-caller-authorized-visible-inventory",
     "harnessRefPolicy": "full-40-character-commit-sha"
   }
 }
