@@ -19,36 +19,43 @@ plan_command() {
   [[ -n "$report" && -f "$report" ]] || die '--report must name an existing JSON file'
   [[ -n "$output" ]] || die '--output is required'
   require_positive_integer "$min_targets" '--min-targets'
-  require_positive_integer "$max_targets" '--max-targets'
+  require_bounded_positive_integer "$max_targets" '--max-targets' 50
   (( min_targets <= max_targets )) || die '--min-targets cannot exceed --max-targets'
   validate_workflow_file "$workflow_file"
   validate_ref "$workflow_ref"
   require_command jq
 
   mkdir -p "$(dirname "$output")"
-  refuse_symlink_output "$output"
   local temporary
   temporary="$(mktemp "${output}.tmp.XXXXXX")"
-  chmod 600 "$temporary"
   trap 'rm -f "${temporary:-}"' RETURN
 
   jq --exit-status --sort-keys \
     --arg impact_schema "$IMPACT_SCHEMA" \
     --arg plan_schema "$PLAN_SCHEMA" \
     --arg root_package "$ROOT_PACKAGE" \
+    --arg package_index_scope "$DECLARED_PACKAGE_INDEX_SCOPE" \
     --arg private_coverage "$DECLARED_PRIVATE_COVERAGE" \
+    --arg inventory_consistency "$DECLARED_INVENTORY_CONSISTENCY" \
     --arg workflow_file "$workflow_file" \
     --arg workflow_ref "$workflow_ref" \
     --argjson min_targets "$min_targets" \
     --argjson max_targets "$max_targets" '
+      def component:
+        type == "string" and length >= 1 and length <= 100 and
+        test("^[A-Za-z0-9_.-]+$") and . != "." and . != "..";
       def coordinate:
-        type == "string" and
-        test("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$") and
-        (split("/") | length == 2 and all(.[]; . != "." and . != ".." and length <= 128));
+        type == "string" and length <= 201 and
+        (split("/") as $parts | ($parts | length) == 2 and all($parts[]; component));
       def issue_id:
         type == "string" and test("^[A-Z][A-Z0-9]+-[1-9][0-9]*$");
       def classification:
         type == "string" and IN("exact-pin", "package-release", "adapted-concept", "candidate");
+      def nonnegative_integer:
+        type == "number" and floor == . and . >= 0;
+      def registry_id:
+        type == "string" and length >= 1 and length <= 256 and
+        test("^[A-Za-z0-9][A-Za-z0-9._:/-]*$");
       def fail($message): error($message);
 
       . as $report
@@ -57,37 +64,44 @@ plan_command() {
       | if ($report.inventory.inventoryDigest | type != "string" or
             (test("^sha256:[0-9a-f]{64}$") | not))
         then fail("invalid inventory digest") else . end
+      | if ($report.inventory.registryId | registry_id | not)
+        then fail("invalid registry identity") else . end
+      | if $report.inventory.versionPolicy != "all-visible"
+        then fail("consumer execution requires all-visible version traversal") else . end
+      | if (($report.inventory.packageListTotal | nonnegative_integer | not) or
+            ($report.inventory.packagesFetched | nonnegative_integer | not) or
+            ($report.inventory.versionsAttempted | nonnegative_integer | not) or
+            ($report.inventory.graphsLoaded | nonnegative_integer | not) or
+            ($report.inventory.missingGraphCount | nonnegative_integer | not))
+        then fail("invalid inventory counters") else . end
+      | if $report.inventory.packagesFetched != $report.inventory.packageListTotal
+        then fail("package-index pagination is incomplete") else . end
       | if $report.semantics.graphView != "declared" or
            $report.semantics.resolution != "unresolved-requirements" or
-           $report.semantics.privateCoverage != $private_coverage
-        then fail("consumer execution requires caller-scoped declared unresolved graph semantics") else . end
+           $report.semantics.packageIndexScope != $package_index_scope or
+           $report.semantics.privateCoverage != $private_coverage or
+           $report.semantics.inventoryConsistency != $inventory_consistency or
+           $report.semantics.redirectsAllowed != false or
+           $report.semantics.registryIdentityRequired != true
+        then fail("consumer execution requires the hardened declared-graph census semantics") else . end
       | if ($report.consumers | type) != "array" then fail("impact consumers must be an array") else . end
-      | if ($report.consumers | length) > 100000 then fail("impact consumer count exceeds the safety limit") else . end
       | if ($report.gaps | type) != "object" then fail("impact gaps must be an object") else . end
-      | if (($report.gaps.graphOnly | type) != "array" or
-            ($report.gaps.curatedOnly | type) != "array" or
-            ($report.gaps.unclassified | type) != "array")
-        then fail("impact gap collections must be arrays") else . end
-      | if (($report.inventory.missingGraphCount | type) != "number" or
-            ($report.inventory.missingGraphCount | floor) != $report.inventory.missingGraphCount or
-            $report.inventory.missingGraphCount < 0)
-        then fail("missing graph count must be a non-negative integer") else . end
       | if (($report.gaps.graphOnly // []) | length) != 0
         then fail("graph-only consumers must be reconciled before execution") else . end
       | if (($report.gaps.unclassified // []) | length) != 0
         then fail("unclassified consumers must be reconciled before execution") else . end
-      | if (($report.inventory.missingGraphCount // 0) != 0)
+      | if $report.inventory.missingGraphCount != 0
         then fail("missing declared graphs must be reconciled before execution") else . end
       | [
           $report.consumers[]
           | select(.coverageStatus == "graph-confirmed")
-          | if (.repository | coordinate) | not then fail("invalid graph-confirmed consumer coordinate") else . end
-          | if (.testRepository | coordinate) | not then fail("graph-confirmed consumer lacks a valid test repository") else . end
+          | if (.repository | coordinate | not) then fail("invalid graph-confirmed consumer coordinate") else . end
+          | if (.testRepository | coordinate | not) then fail("graph-confirmed consumer lacks a valid test repository") else . end
           | if (.minimumDepth | type) != "number" or (.minimumDepth | floor) != .minimumDepth or .minimumDepth < 1
             then fail("graph-confirmed consumer has an invalid minimum depth") else . end
-          | if (.adoptionClassification | classification) | not
+          | if (.adoptionClassification | classification | not)
             then fail("graph-confirmed consumer has an invalid adoption classification") else . end
-          | if (.linearIssue | issue_id) | not
+          | if (.linearIssue | issue_id | not)
             then fail("graph-confirmed consumer has an invalid Linear issue") else . end
           | {
               repository,
@@ -121,10 +135,15 @@ plan_command() {
           schema: $plan_schema,
           source: {
             root: $report.root,
+            registryId: $report.inventory.registryId,
             inventoryDigest: $report.inventory.inventoryDigest,
+            versionPolicy: $report.inventory.versionPolicy,
             graphView: $report.semantics.graphView,
             resolution: $report.semantics.resolution,
-            privateCoverage: $report.semantics.privateCoverage
+            packageIndexScope: $report.semantics.packageIndexScope,
+            privateCoverage: $report.semantics.privateCoverage,
+            inventoryConsistency: $report.semantics.inventoryConsistency,
+            redirectsAllowed: $report.semantics.redirectsAllowed
           },
           workflow: {
             file: $workflow_file,
@@ -143,6 +162,5 @@ plan_command() {
     ' "$report" > "$temporary" || die 'impact report failed execution-plan validation'
 
   mv "$temporary" "$output"
-  chmod 600 "$output"
   trap - RETURN
 }

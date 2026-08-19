@@ -9,10 +9,15 @@
   "schema": "opto-sync/consumer-execution-plan/v1",
   "source": {
     "graphView": "declared",
+    "inventoryConsistency": "total-stable-pagination-without-registry-checkpoint",
     "inventoryDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    "privateCoverage": "limited-to-caller-authorized-visible-inventory",
+    "packageIndexScope": "registry-wide-current-list-endpoint",
+    "privateCoverage": "graph-fetches-limited-to-caller-authorization",
+    "redirectsAllowed": false,
+    "registryId": "registry:test",
     "resolution": "unresolved-requirements",
-    "root": "opto-sync/opto-sync-clients"
+    "root": "opto-sync/opto-sync-clients",
+    "versionPolicy": "all-visible"
   },
   "targetCount": 2,
   "targets": [

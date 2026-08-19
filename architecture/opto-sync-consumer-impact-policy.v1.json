@@ -5,6 +5,7 @@
   "harnessShaVariable": "OPTO_SYNC_E2E_GRAPH_HARNESS_SHA",
   "registryUrlVariable": "ZED_REGISTRY_URL",
   "registryTokenSecret": "ZED_REGISTRY_TOKEN",
+  "registryTokenOriginVariable": "ZED_REGISTRY_TOKEN_ORIGIN",
   "versionPolicy": "all-visible",
   "failOn": [
     "graph-only",
@@ -35,13 +36,24 @@
       "success"
     ],
     "defaultPollIntervalSeconds": 30,
+    "maximumPollIntervalSeconds": 300,
     "defaultWaitTimeoutSeconds": 3600,
-    "acceptedDispatchIsNotCompletion": true
+    "maximumWaitTimeoutSeconds": 21600,
+    "maximumApiResponseBytes": 10485760,
+    "maximumWorkflowSourceBytes": 1048576,
+    "redirectPolicy": "reject",
+    "refVerification": "immutable-preflight-plus-pre-dispatch-recheck-plus-exact-run-head",
+    "acceptedDispatchIsNotCompletion": true,
+    "partialFailureReceiptsRequired": true
   },
   "semantics": {
     "graphView": "declared",
     "resolution": "unresolved-requirements",
-    "privateCoverage": "limited-to-caller-authorized-visible-inventory",
+    "packageIndexScope": "registry-wide-current-list-endpoint",
+    "privateCoverage": "graph-fetches-limited-to-caller-authorization",
+    "inventoryConsistency": "total-stable-pagination-without-registry-checkpoint",
+    "redirectsAllowed": false,
+    "registryIdentityRequired": true,
     "harnessRefPolicy": "full-40-character-commit-sha"
   }
 }

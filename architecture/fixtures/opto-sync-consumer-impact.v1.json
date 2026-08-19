@@ -2,13 +2,28 @@
   "schema": "opto-sync/consumer-impact/v1",
   "root": "opto-sync/opto-sync-clients",
   "semantics": {
+    "consumerDiscovery": "enumerate-registry-package-index-and-invert-caller-authorized-declared-edges",
     "graphView": "declared",
+    "inventoryConsistency": "total-stable-pagination-without-registry-checkpoint",
+    "packageIndexScope": "registry-wide-current-list-endpoint",
+    "privateCoverage": "graph-fetches-limited-to-caller-authorization",
+    "redirectsAllowed": false,
+    "registryIdentityRequired": true,
     "resolution": "unresolved-requirements",
-    "privateCoverage": "limited-to-caller-authorized-visible-inventory"
+    "reverseDependentsEndpointUsed": false
   },
   "inventory": {
+    "declaredEdgeCount": 2,
+    "graphsLoaded": 3,
     "inventoryDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    "missingGraphCount": 0
+    "missingGraphCount": 0,
+    "missingGraphs": [],
+    "packageListTotal": 3,
+    "packagesFetched": 3,
+    "registryId": "registry:test",
+    "scope": "fixture-registry-index",
+    "versionPolicy": "all-visible",
+    "versionsAttempted": 3
   },
   "consumers": [
     {

@@ -1,72 +1,83 @@
-# Graph-derived Opto-Sync consumer execution
+# Opto-Sync graph-derived consumer execution
 
-The Opto-Sync dependency census is useful only when discovered consumers are
-connected to executable product tests. This repository owns the independent
-test-organization policy that turns the pinned Zed declared-graph report into a
-bounded, auditable downstream execution plan.
+The test organization turns the Zed declared-dependency census from
+`opto-sync/opto-sync-e2e` into a bounded, independently verified downstream
+execution plan.
 
-## Semantic boundary
+## Evidence boundary
 
-The source report is a caller-authorized census of **declared, unresolved** Zed
-requirements. It is not a resolved lock graph and does not claim visibility into
-packages the configured registry credentials cannot see.
+The current Zed package-list endpoint is a registry-wide index. Authorization
+is applied when each package version's declared graph is fetched. The canary
+therefore reports:
 
-The execution planner therefore requires all of the following before it selects
-any target:
+- a registry-wide package index;
+- caller-authorized graph fetches;
+- declared, unresolved requirements rather than a resolved lock graph;
+- a live census whose pagination total is checked for stability, but which has
+  no registry generation/checkpoint and is not an atomic snapshot.
 
-- graph view `declared` and resolution `unresolved-requirements`;
-- caller-scoped private coverage;
-- no graph-only or unclassified consumers;
-- no missing declared graphs;
-- at least one graph-confirmed consumer with a curated E2E repository.
+The plan refuses older reports that describe the inventory as globally private
+or caller-scoped, allow redirects, omit registry identity, use a latest-only
+version policy, or contain incomplete package-index pagination.
 
-Curated-only entries remain visible rollout evidence but are not dispatched as
-though the graph had confirmed them.
+## Two-phase downstream execution
 
-## Execution contract
+Before any workflow is dispatched, every target must pass all of these checks:
 
-`scripts/opto-sync-consumer-dispatch.sh` produces a deterministic plan grouped
-by unique `testRepository`. Every selected repository must expose the active
-workflow `.github/workflows/opto-sync-wrapper-e2e.yml` on `main`, with the
-Boolean `live_e2e` input.
+1. The execution plan is deterministic and contains no graph-only,
+   unclassified, or missing-graph gaps.
+2. The target repository and consumer coordinates are normalized and bounded.
+3. The named workflow is active and resolves to the required path.
+4. The configured branch resolves to a full immutable commit SHA.
+5. The workflow file is fetched at that SHA, size-bounded, strictly decoded,
+   fingerprinted, parsed as YAML, and checked for executable Opto-Sync node,
+   browser, and downstream-product conformance steps.
 
-The dispatcher preflights every target before it dispatches any target. It then
-uses GitHub REST API version `2026-03-10`, which returns the exact workflow-run
-ID for each accepted dispatch. The controller polls those exact run IDs and
-fails unless every run completes with conclusion `success`.
+Only after every target passes preflight does dispatch begin. Immediately before
+an individual dispatch, the branch is resolved again; movement aborts the
+remaining fan-out. The workflow ID is used for dispatch. The returned run URL
+and web URL must remain on the configured GitHub origins. Each run must then
+match the preflight commit SHA, branch, workflow ID, workflow path, repository,
+and event before its conclusion is accepted.
 
-A dispatch acceptance is not treated as test completion. Receipts include the
-workflow ID, workflow-run ID, API and HTML run URLs, status, conclusion, attempt,
-head SHA, and timestamps for each selected repository.
+GitHub's dispatch API still accepts a branch or tag ref rather than an immutable
+commit ref. The second ref lookup narrows that race window, and the exact
+returned-run check detects any remaining movement; it cannot prevent execution
+of a moved ref in the final request/queue interval. This residual limitation is
+recorded rather than hidden.
 
-## Configuration
+## Credential and transport controls
 
-Repository variables:
+- Zed credentials are scoped only to the graph-enumeration step and are bound
+  to an explicit registry origin by the pinned harness.
+- The cross-repository dispatch credential is scoped only to the credential
+  probe and dispatch steps.
+- HTTP redirects are never followed while authorization headers are present.
+- GitHub API roots reject userinfo, query strings, fragments, non-HTTPS schemes,
+  and paths other than the GitHub Enterprise `/api/v3` form.
+- API bodies, workflow source, connect time, request time, poll interval, total
+  wait time, target count, coordinates, and token header values are bounded.
+- Response bodies and authorization values are never copied into durable
+  receipts or logs.
 
-- `OPTO_SYNC_E2E_GRAPH_HARNESS_SHA`: reviewed lowercase 40-character commit SHA
-  from `opto-sync/opto-sync-e2e`;
-- `ZED_REGISTRY_URL`: HTTPS Zed registry API root;
-- `OPTO_SYNC_REQUIRE_LIVE_ZED_GRAPH=true`: make missing live graph inputs fatal;
-- `OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH=true`: make missing dispatch credentials
-  fatal.
+Prefer a narrowly installed GitHub App token for downstream dispatch. Limit its
+repository installation to the test repositories and grant only the Actions
+permission needed to dispatch/read runs plus metadata read access. Do not use a
+broad personal access token for routine canaries.
 
-Repository secrets:
+## Durable outcomes
 
-- `ZED_REGISTRY_TOKEN`: optional bearer token defining the visible Zed inventory;
-- `OPTO_SYNC_TEST_DISPATCH_TOKEN`: preferably a GitHub App installation token,
-  or a fine-grained token, with Actions read/write access to each downstream E2E
-  repository selected by the graph.
+Receipts are written for success and for preflight, dispatch, polling, timeout,
+and downstream-test failures. Accepted dispatch is never treated as completion.
+A successful canary requires every selected exact run to complete with the
+`success` conclusion.
 
-The dispatch token is passed only as a masked environment value and is never
-written to the plan, logs, artifacts, or receipts.
+The workflow remains draft-only until these repository settings are configured
+and an authorized live run is retained:
 
-## Safety limits
-
-- one to fifty unique E2E targets per run;
-- full fleet preflight before the first dispatch;
-- exact standardized workflow filename and `main` ref;
-- no automatic retry of a dispatch POST, avoiding duplicate runs after an
-  ambiguous network response;
-- sixty-minute downstream completion deadline and thirty-second polling;
-- pull-request runs exercise deterministic fixtures only; scheduled or explicit
-  dispatches perform live registry enumeration and downstream execution.
+- `OPTO_SYNC_E2E_GRAPH_HARNESS_SHA`: reviewed full 40-character harness commit;
+- `ZED_REGISTRY_URL` and, where needed, `ZED_REGISTRY_TOKEN` plus
+  `ZED_REGISTRY_TOKEN_ORIGIN`;
+- `OPTO_SYNC_TEST_DISPATCH_TOKEN`: narrowly scoped GitHub App installation token;
+- optional fail-closed variables `OPTO_SYNC_REQUIRE_LIVE_ZED_GRAPH` and
+  `OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH`.
