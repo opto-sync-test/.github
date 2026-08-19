@@ -6,12 +6,23 @@ on:
       - agent/den-607-zed-consumer-canary
     paths:
       - '.audit-export/ready'
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '.audit-export/ready'
+      - '.github/workflows/export-den-607-audit.yml'
 
 permissions:
   contents: read
 
 jobs:
   export:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
