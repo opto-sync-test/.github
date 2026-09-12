@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "root": "opto-sync/opto-sync-clients",
+  "harnessRepository": "opto-sync/opto-sync-e2e",
+  "harnessShaVariable": "OPTO_SYNC_E2E_GRAPH_HARNESS_SHA",
+  "registryUrlVariable": "ZED_REGISTRY_URL",
+  "registryTokenSecret": "ZED_REGISTRY_TOKEN",
+  "registryTokenOriginVariable": "ZED_REGISTRY_TOKEN_ORIGIN",
+  "versionPolicy": "all-visible",
+  "failOn": [
+    "graph-only",
+    "unclassified",
+    "missing-graphs"
+  ],
+  "allowCuratedOnly": true,
+  "consumerExecution": {
+    "planSchema": "opto-sync/consumer-execution-plan/v1",
+    "receiptSchema": "opto-sync/consumer-dispatch-receipts/v1",
+    "dispatchTokenSecret": "OPTO_SYNC_TEST_DISPATCH_TOKEN",
+    "requireDispatchVariable": "OPTO_SYNC_REQUIRE_CONSUMER_DISPATCH",
+    "apiVersion": "2026-03-10",
+    "dispatchMode": "workflow_dispatch",
+    "dispatchResponseRequiresWorkflowRunId": true,
+    "workflowFile": "opto-sync-wrapper-e2e.yml",
+    "workflowPath": ".github/workflows/opto-sync-wrapper-e2e.yml",
+    "workflowRef": "main",
+    "workflowInputs": {
+      "live_e2e": true
+    },
+    "coverageStatus": "graph-confirmed",
+    "deduplicateBy": "testRepository",
+    "minimumTargets": 1,
+    "maximumTargets": 50,
+    "completionRequired": true,
+    "successfulConclusions": [
+      "success"
+    ],
+    "defaultPollIntervalSeconds": 30,
+    "maximumPollIntervalSeconds": 300,
+    "defaultWaitTimeoutSeconds": 3600,
+    "maximumWaitTimeoutSeconds": 21600,
+    "maximumApiResponseBytes": 10485760,
+    "maximumWorkflowSourceBytes": 1048576,
+    "redirectPolicy": "reject",
+    "refVerification": "immutable-preflight-plus-pre-dispatch-recheck-plus-exact-run-head",
+    "acceptedDispatchIsNotCompletion": true,
+    "partialFailureReceiptsRequired": true
+  },
+  "semantics": {
+    "graphView": "declared",
+    "resolution": "unresolved-requirements",
+    "packageIndexScope": "registry-wide-current-list-endpoint",
+    "privateCoverage": "graph-fetches-limited-to-caller-authorization",
+    "inventoryConsistency": "total-stable-pagination-without-registry-checkpoint",
+    "redirectsAllowed": false,
+    "registryIdentityRequired": true,
+    "harnessRefPolicy": "full-40-character-commit-sha"
+  }
+}

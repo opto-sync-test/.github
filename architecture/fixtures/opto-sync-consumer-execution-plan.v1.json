@@ -1,0 +1,55 @@
+{
+  "completion": {
+    "required": true,
+    "successfulConclusions": [
+      "success"
+    ]
+  },
+  "consumerCount": 2,
+  "schema": "opto-sync/consumer-execution-plan/v1",
+  "source": {
+    "graphView": "declared",
+    "inventoryConsistency": "total-stable-pagination-without-registry-checkpoint",
+    "inventoryDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "packageIndexScope": "registry-wide-current-list-endpoint",
+    "privateCoverage": "graph-fetches-limited-to-caller-authorization",
+    "redirectsAllowed": false,
+    "registryId": "registry:test",
+    "resolution": "unresolved-requirements",
+    "root": "opto-sync/opto-sync-clients",
+    "versionPolicy": "all-visible"
+  },
+  "targetCount": 2,
+  "targets": [
+    {
+      "consumers": [
+        {
+          "adoptionClassification": "exact-pin",
+          "linearIssue": "DEN-1386",
+          "minimumDepth": 1,
+          "repository": "sonus-auris/sonus-auris-sync"
+        }
+      ],
+      "testRepository": "sonus-auris/sonus-auris-e2e"
+    },
+    {
+      "consumers": [
+        {
+          "adoptionClassification": "exact-pin",
+          "linearIssue": "DEN-1386",
+          "minimumDepth": 2,
+          "repository": "voxletra/voxletra-sync"
+        }
+      ],
+      "testRepository": "voxletra/voxletra-e2e"
+    }
+  ],
+  "workflow": {
+    "file": "opto-sync-wrapper-e2e.yml",
+    "inputs": {
+      "live_e2e": true
+    },
+    "path": ".github/workflows/opto-sync-wrapper-e2e.yml",
+    "ref": "main"
+  }
+}
