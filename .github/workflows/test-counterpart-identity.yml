@@ -1,0 +1,32 @@
+name: test counterpart identity
+on:
+  pull_request:
+    paths: ['architecture/test-counterpart.json', '.github/workflows/test-counterpart-identity.yml']
+  push:
+    branches: [main]
+    paths: ['architecture/test-counterpart.json', '.github/workflows/test-counterpart-identity.yml']
+  workflow_dispatch: {}
+permissions: {contents: read}
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate admitted counterpart
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          t="$(jq -r '.testOwner.login' architecture/test-counterpart.json)"; p="$(jq -r '.productionOwner.login' architecture/test-counterpart.json)"
+          test "$(jq -r '.status' architecture/test-counterpart.json)" = active
+          test "$(jq -r '.policy.suffixInferenceAuthoritative' architecture/test-counterpart.json)" = false
+          test "$(jq -r '.policy.bindExactDefaultBranchSha' architecture/test-counterpart.json)" = true
+          test "$t" = "$GITHUB_REPOSITORY_OWNER"
+          test "$(gh api /orgs/$t --jq .id)" = "$(jq -r '.testOwner.id' architecture/test-counterpart.json)"
+          test "$(gh api /orgs/$p --jq .id)" = "$(jq -r '.productionOwner.id' architecture/test-counterpart.json)"
