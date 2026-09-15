@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "status": "active",
+  "testOwner": {"login": "opto-sync-test", "id": 313179195, "type": "Organization"},
+  "productionOwner": {"login": "opto-sync", "id": 308481609, "type": "Organization"},
+  "discoveryScope": {"kind": "organization-current-tips"},
+  "relationshipRegistry": "architecture/repository-relationships.json",
+  "policy": {"suffixInferenceAuthoritative": false, "bindExactDefaultBranchSha": true, "failClosedOnInvisiblePrivateSources": true, "silentPublicFallbackAllowed": false}
+}
