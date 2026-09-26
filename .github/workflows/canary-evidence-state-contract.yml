@@ -1,0 +1,68 @@
+name: Opto-Sync canary evidence-state contract
+
+on:
+  pull_request:
+    paths:
+      - "architecture/opto-sync-canary-evidence-state.v1.json"
+      - "scripts/opto-sync-canary-evidence-state.rs"
+      - ".github/workflows/canary-evidence-state-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "architecture/opto-sync-canary-evidence-state.v1.json"
+      - "scripts/opto-sync-canary-evidence-state.rs"
+      - ".github/workflows/canary-evidence-state-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source revision
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+        with:
+          toolchain: 1.90.0
+
+      - name: Compile classifier with warnings denied
+        run: rustc --edition=2021 -D warnings scripts/opto-sync-canary-evidence-state.rs -o /tmp/opto-sync-canary-evidence-state
+
+      - name: Prove evidence-state distinctions
+        shell: bash
+        run: |
+          set -euo pipefail
+          green="$(/tmp/opto-sync-canary-evidence-state success skipped completed 3 3 3 0)"
+          no_op="$(/tmp/opto-sync-canary-evidence-state skipped success none 0 0 0 0)"
+          partial="$(/tmp/opto-sync-canary-evidence-state success skipped not-configured 4 0 0 0)"
+          failed="$(/tmp/opto-sync-canary-evidence-state success skipped failed 3 3 2 1)"
+          blocked="$(/tmp/opto-sync-canary-evidence-state skipped skipped none 0 0 0 0)"
+
+          test "$green" = '{"schema":"opto-sync/canary-evidence-state/v1","state":"qualified-green","productGreen":true,"reason":"all exact downstream targets completed successfully"}'
+          test "$no_op" = '{"schema":"opto-sync/canary-evidence-state/v1","state":"no-op","productGreen":false,"reason":"live consumer qualification did not execute because required configuration was absent"}'
+          test "$partial" = '{"schema":"opto-sync/canary-evidence-state/v1","state":"partial","productGreen":false,"reason":"live graph evidence executed but downstream dispatch completion was not configured"}'
+          test "$failed" = '{"schema":"opto-sync/canary-evidence-state/v1","state":"failed","productGreen":false,"reason":"live qualification reached downstream execution but universal success was not established"}'
+          test "$blocked" = '{"schema":"opto-sync/canary-evidence-state/v1","state":"blocked","productGreen":false,"reason":"job state or receipt evidence is missing or insufficient for qualification"}'
+
+      - name: Reject inconsistent receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if /tmp/opto-sync-canary-evidence-state success skipped completed 2 3 3 0; then
+            echo 'inconsistent receipt counts were incorrectly admitted' >&2
+            exit 1
+          fi

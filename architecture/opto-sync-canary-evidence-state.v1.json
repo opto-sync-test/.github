@@ -1,0 +1,43 @@
+{
+  "schema": "opto-sync/canary-evidence-state-policy/v1",
+  "workflow": "Opto-Sync Zed consumer impact canary",
+  "states": {
+    "qualified-green": {
+      "productGreen": true,
+      "requirements": [
+        "live-impact-canary=success",
+        "dispatch.status=completed",
+        "targetCount>0",
+        "completedCount=targetCount",
+        "successfulCount=targetCount",
+        "failedCount=0"
+      ]
+    },
+    "no-op": {
+      "productGreen": false,
+      "requirements": [
+        "live-impact-canary=skipped",
+        "configuration-evidence=success"
+      ],
+      "meaning": "required immutable harness or registry configuration was absent; no product qualification executed"
+    },
+    "partial": {
+      "productGreen": false,
+      "meaning": "some live evidence executed but universal exact downstream completion was not established"
+    },
+    "failed": {
+      "productGreen": false,
+      "meaning": "a live qualification or downstream completion lane executed and failed"
+    },
+    "blocked": {
+      "productGreen": false,
+      "meaning": "evidence was missing, malformed, admission-blocked, or otherwise insufficient to classify"
+    }
+  },
+  "governance": {
+    "workflowConclusionAloneIsProductEvidence": false,
+    "queuedSkippedZeroStepHistoricalAreGreen": false,
+    "laterRecoveryRequiresScheduledExactHeadQualifiedGreen": true,
+    "delayedOlderEvidenceMayRegressNewerState": false
+  }
+}
